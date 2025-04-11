@@ -188,12 +188,14 @@ def standardize_png(file_path):
 
     # Generate output path based on the original filename
     base_name = os.path.splitext(os.path.basename(file_path))[0]
-    output_image_path = "Temp/temp.png"
+    output_image_path1 = "Temp/temp1.png"
+    output_image_path2 = "Temp/temp2.png"
     
     # Save the resized image
-    resized_image.save(output_image_path)
+    resized_image.save(output_image_path1)
+    resized_image.save(output_image_path2)
 
-    return output_image_path, width, height
+    return output_image_path1, width, height, output_image_path2, width, height
 
 
 
@@ -212,6 +214,24 @@ def standardize_image(file_path):
     #     return image_to_png(file_path)
     # elif file_extension == ".tiff":
     #     raise ValueError(f"Unimplemented file type: {file_extension}")
+    else:
+        raise ValueError(f"Unsupported file type: {file_extension}")
+
+
+def standardize_image2(file_path):
+    print("standardizing image")
+    file_extension = os.path.splitext(file_path)[1].lower()
+    os.makedirs("Temp", exist_ok=True)
+
+    if file_extension == ".png":
+        return standardize_png(file_path)
+    # if file_extension == ".pdf":
+    #     print("... is a pdf")
+    #     return pdf_to_png(file_path)
+    elif file_extension in [".jpg", ".jpeg"]:
+        return image_to_png(file_path)
+    elif file_extension == ".tiff":
+        raise ValueError(f"Unimplemented file type: {file_extension}")
     else:
         raise ValueError(f"Unsupported file type: {file_extension}")
 
@@ -312,7 +332,8 @@ def pdf_to_png(pdf_path):
 #     return OUTPUT_IMAGE_PATH, width, height
 
 def image_to_png(image_path):
-    OUTPUT_IMAGE_PATH = "Temp/temp.png"
+    OUTPUT_IMAGE_PATH1 = "Temp/temp1.png"
+    OUTPUT_IMAGE_PATH2 = "Temp/temp2.png"
     
     # Open the image (TIFF, JPG, or JPEG) and check its DPI
     img = Image.open(image_path)
@@ -343,14 +364,15 @@ def image_to_png(image_path):
     
     # Convert to PNG and save
     img = img.convert("RGBA")  # Ensure transparency support if needed
-    img.save(OUTPUT_IMAGE_PATH, "PNG", dpi=(target_dpi, target_dpi))
+    img.save(OUTPUT_IMAGE_PATH1, "PNG", dpi=(target_dpi, target_dpi))
+    img.save(OUTPUT_IMAGE_PATH2, "PNG", dpi=(target_dpi, target_dpi))
     
     # Explicitly close the image to free memory
     img.close()
     
     # Return the output path and the final dimensions
     width, height = target_width, target_height
-    return OUTPUT_IMAGE_PATH, width, height
+    return OUTPUT_IMAGE_PATH1, width, height, OUTPUT_IMAGE_PATH2, width, height
 
 
 
@@ -421,6 +443,36 @@ def removeTop(textImage, OCRData, CourseStrings):
         return textImage, 0
     else:           
         return topless_img, rowVal
+    
+def removeTop2(textImage1, textImage2, OCRData, CourseStrings):
+    
+    hei, wid = textImage1.shape
+
+    
+
+    stringDetected = False
+    rowVals = []
+    for textChunk in OCRData:
+        for course in CourseStrings:
+            if(course.lower() in textChunk["text"].lower()):
+                # if stringDetected == False:
+                stringDetected = True
+                rowVals.append(textChunk["bounding_box"][0]["y"]) # pixel location for bottom of "couse id" line
+
+    rowVals
+
+
+
+    # "erase" everything above classes table
+    topless_img1 = cv2.rectangle(textImage1, (int(0),int(0)), (int(wid), int(rowVals[0])), (255,255,255), cv2.FILLED)
+    if len(rowVals) > 1:
+        topless_img2 = cv2.rectangle(textImage2, (int(0),int(0)), (int(wid), int(rowVals[-1])), (255,255,255), cv2.FILLED)
+    
+
+    if stringDetected == False:
+        return textImage1, textImage1, 0
+    else:           
+        return topless_img1, topless_img2, rowVals
     
 
 
