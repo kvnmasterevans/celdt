@@ -12,6 +12,10 @@ from FinalizeColumns import check_predicted_column_values
 from check_for_CELDT import check_CELDT_status
 import cv2
 import numpy as np
+import sys
+
+#  switch print for log file
+#  get ctrl-c working
 
 def process_single_image(file_name, input_folder_path):
     redacted_image = process_image(file_name, input_folder_path)
@@ -244,7 +248,7 @@ def process_images_in_folder(folder_path):
                 text_file.write(f"\tELPAC results found = {elpac_detected}\n")
                 print("still going 3")
 
-
+                csv_writer.writerow([filename, (celdt_detected or elpac_detected)])
                 if elpac_detected or celdt_detected:
                     text_file.write("\t details:\n")
 
@@ -253,17 +257,19 @@ def process_images_in_folder(folder_path):
                     print("elpac detected")
                     for row in elpac_rows:
                         text_file.write(f"\t\t{row}\n")
+                        csv_writer.writerow([filename, row])
                 if celdt_detected == True: # and dates and scores and score_types:
                     print("celdt_detected")
                     text_file.write(f"\t\tCELDT data\n")
                     for row in confirmed_rows:
                         text_file.write(f"\t\t{row}\n")
+                        csv_writer.writerow([filename, row])
                 
                 
                     print("still going 7")
                 text_file.flush()
                 print("still going 8")
-                csv_writer.writerow([filename, (celdt_detected or elpac_detected)])
+                
                 # Flush to ensure data is written to disk
                 csv_file.flush()
                 print(f"finished with {filename}")
@@ -274,11 +280,15 @@ def process_images_in_folder(folder_path):
                 # redacted_img_path = "Redacted/" + str(fileName) + ".png"
                 
                 # save_image(redacted_image, redacted_img_path)
-            except:
+            except KeyboardInterrupt:
+                print("Interrupted by user. Exiting.")
+                raise  # ← this re-raises it so the program stops
+            except Exception as e:
                 print(f"some problem in processing {filename}")
 
 
 def main():
+    
     parser = argparse.ArgumentParser(description="Run OCR on images.")
     parser.add_argument('command', choices=['run'], help="The command to run.")
     parser.add_argument('target', help="The target to process: 'all' for all images in the folder or the specific image filename.")
@@ -293,4 +303,10 @@ def main():
             print("Error: Can only run for all files. haven't implemented single file yet")
 
 if __name__ == "__main__":
-    main()
+    with open("log_output.txt", "w", buffering=1) as f:
+        sys.stdout = f
+        try:
+            main()
+        finally:
+            sys.stdout = sys.__stdout__
+            print("finished running")
