@@ -1,7 +1,11 @@
 # FinalizeColumns.py
 # from productionUtils import displayColumnEdges as showEdges
-from utils import openJpgImage
+# from utils import openJpgImage
+import cv2
 
+def openJpgImage(jpg_path):
+    image = cv2.imread(jpg_path, cv2.IMREAD_GRAYSCALE)
+    return image
 
 #To Do:
 # make tolerance a static file-wide variable

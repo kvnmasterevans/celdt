@@ -8,6 +8,8 @@ import json
 import os
 from datetime import datetime
 from rowUtilsNew import check_header_rows_2_and_3, findTextRows, findMatchingRowPatterns
+from FinalizeColumns import check_predicted_column_values
+from check_for_CELDT import check_CELDT_status
 
 
 
@@ -94,6 +96,32 @@ def convert_OCR_results_to_json(result1, result2, fileName):
     return output_file_path1, output_file_path2
 
 
+# // NEW LOGIC BEING IMPLEMENTED
+# //
+# // UNDER CONSTRUCTION
+# //
+def convert_OCR_page_result_to_json(result, fileName, page_number):
+    output_data = []
+    for detection in result:
+        bounding_box, text, confidence = detection
+
+
+        # Reformat the bounding box information
+        bounding_box = [{'x': float(x), 'y': float(y)} for x, y in bounding_box]
+
+        output_data.append({
+            'text': text,
+            'bounding_box': bounding_box,
+            'confidence': confidence
+        })
+    fileName = os.path.basename(remove_extension(fileName))
+    output_file_path = "OCR_Data/" + fileName + str(page_number) + ".json"
+    os.makedirs("OCR_Data", exist_ok=True)
+    with open(output_file_path, 'w') as json_file:
+        json.dump(output_data, json_file)
+    return output_file_path
+
+
 # runs easy OCR on the provided image and returns the results
 def run_ocr(png_img_path):
     
@@ -131,45 +159,6 @@ def pdf_to_jpg_path(pdf_path):
     return OUTPUT_IMAGE_PATH, width, height
 
 
-# def standardize_image_file(image_path):
-#     print("import image")
-#     #filter for extension...k
-#     _, extension = os.path.splitext(image_path)
-    
-#     # Convert extension to lowercase for consistent comparison
-#     extension = extension.lower()
-
-#     if extension == ".pdf":
-#         print(f"Processing PDF file: {image_path}")
-#         # Add PDF processing logic here
-#     elif extension == ".tiff":
-#         print(f"Processing TIFF file: {image_path}")
-#         # Add TIFF processing logic here
-#     elif extension in [".jpg", ".jpeg"]:
-#         print(f"Processing JPEG file: {image_path}")
-#         # Add JPEG processing logic here
-#     else:
-#         print(f"Unsupported file type: {image_path}")
-
-# def standardize_png(file_path):
-#     print("standardize")
-#     image = Image.open(file_path)
-    
-
-#     # Define the new size (width, height)
-#     SCALING_FACTOR = (300 / 72 )  # Replace with your desired dimensions
-
-#     # Resize the image
-#     resized_image = image.resize(SCALING_FACTOR)
-#     width, height = resized_image.size
-
-#     OUTPUT_IMAGE_PATH = "Temp/temp.png"
-#     # Save or show the resized image
-#     resized_image.save(OUTPUT_IMAGE_PATH)  # Save the resized image
-
-#     return OUTPUT_IMAGE_PATH, width, height
-
-
 def standardize_png(file_path):
     print("Standardizing", file_path)
     image = Image.open(file_path)
@@ -188,14 +177,12 @@ def standardize_png(file_path):
 
     # Generate output path based on the original filename
     base_name = os.path.splitext(os.path.basename(file_path))[0]
-    output_image_path1 = "Temp/temp1.png"
-    output_image_path2 = "Temp/temp2.png"
+    output_image_path = "Temp/temp.png"
     
     # Save the resized image
-    resized_image.save(output_image_path1)
-    resized_image.save(output_image_path2)
+    resized_image.save(output_image_path)
 
-    return output_image_path1, width, height, output_image_path2, width, height
+    return output_image_path, width, height
 
 
 
@@ -205,35 +192,18 @@ def standardize_image(file_path):
     file_extension = os.path.splitext(file_path)[1].lower()
     os.makedirs("Temp", exist_ok=True)
 
-    # if file_extension == ".png":
-    #     return standardize_png(file_path)
+    if file_extension == ".png":
+        return standardize_png(file_path)
     if file_extension == ".pdf":
         print("... is a pdf")
         return pdf_to_png(file_path)
-    # elif file_extension in [".jpg", ".jpeg"]:
-    #     return image_to_png(file_path)
-    # elif file_extension == ".tiff":
-    #     raise ValueError(f"Unimplemented file type: {file_extension}")
-    else:
-        raise ValueError(f"Unsupported file type: {file_extension}")
-
-
-def standardize_image2(file_path):
-    print("standardizing image")
-    file_extension = os.path.splitext(file_path)[1].lower()
-    os.makedirs("Temp", exist_ok=True)
-
-    if file_extension == ".png":
-        return standardize_png(file_path)
-    # if file_extension == ".pdf":
-    #     print("... is a pdf")
-    #     return pdf_to_png(file_path)
     elif file_extension in [".jpg", ".jpeg"]:
         return image_to_png(file_path)
     elif file_extension == ".tiff":
         raise ValueError(f"Unimplemented file type: {file_extension}")
     else:
         raise ValueError(f"Unsupported file type: {file_extension}")
+
 
 def pdf_to_png(pdf_path):
     print("pdf to png...")
@@ -249,87 +219,68 @@ def pdf_to_png(pdf_path):
     pix1.save(OUTPUT_IMAGE_PATH1)
     print("page 1...")
 
-    pdf_page2 = pdf_document.load_page(1)  # Load the second page
-    pix2 = pdf_page2.get_pixmap(matrix=fitz.Matrix(SCALING_FACTOR, SCALING_FACTOR))
-    pix2.save(OUTPUT_IMAGE_PATH2)
-    print("page 2...")
-    
+
+    if len(pdf_document) > 1:
+        pdf_page2 = pdf_document.load_page(1)  # Load the second page
+        pix2 = pdf_page2.get_pixmap(matrix=fitz.Matrix(SCALING_FACTOR, SCALING_FACTOR))
+        pix2.save(OUTPUT_IMAGE_PATH2)
+        print("page 2...")
+        height2 = pix2.height
+        width2 = pix2.width
+    else:
+        OUTPUT_IMAGE_PATH2 = None
+        height2 = None
+        width2 = None
     height1 = pix1.height
     width1 = pix1.width
-    height2 = pix2.height
-    width2 = pix2.width
+    
     print("end pdf to png...")
     return OUTPUT_IMAGE_PATH1, width1, height1, OUTPUT_IMAGE_PATH2, width2, height2
 
-# def image_to_png(image_path):
-#     OUTPUT_IMAGE_PATH = "Temp/temp.png"
-    
-#     # Open the image (TIFF, JPG, or JPEG) and check its DPI
-#     img = Image.open(image_path)
-    
-#     # Get current DPI and dimensions
-#     dpi = img.info.get('dpi', (300, 300))  # Default to 72 DPI if not specified
-#     current_dpi = dpi[0]  # Usually, both X and Y DPI are the same
-
-#     # # Scale image to match 300 DPI if it's not already
-#     # scaling_factor = 300 / current_dpi
-#     # new_width = int(img.width * scaling_factor)
-#     # new_height = int(img.height * scaling_factor)
-
-#     #-----
-#     if img.width > 2600:
-#         scale_fact = 2550 / img.width
-#         new_width = int(img.width * scale_fact)
-#         new_height = int(img.height * scale_fact)
-#         img = img.resize((new_width, new_height), Image.LANCZOS)
-
-#     # # Resize image if scaling is needed
-#     # if scaling_factor != 1:
-#     #     img = img.resize((new_width, new_height), Image.LANCZOS)
-    
-#     # Convert to PNG and save
-#     img = img.convert("RGBA")  # Ensure transparency support if needed
-#     img.save(OUTPUT_IMAGE_PATH, "PNG")
-    
-#     width, height = img.size
-#     return OUTPUT_IMAGE_PATH, width, height
+def single_pdf_to_png():
+    print("new logic?")
 
 
-# from PIL import Image
-
-# def image_to_png(image_path):
-#     OUTPUT_IMAGE_PATH = "Temp/temp.png"
+def jpg_to_png(image_path):
+    OUTPUT_IMAGE_PATH = "Temp/temp.png"
     
-#     # Open the image (TIFF, JPG, or JPEG) and check its DPI
-#     img = Image.open(image_path)
+    # Open the image (TIFF, JPG, or JPEG) and check its DPI
+    img = Image.open(image_path)
     
-#     # Target size and DPI for 300 DPI on a 2550 x 3300 image
-#     target_width, target_height = 2550, 3300
-#     target_dpi = 300
+    # Target size and DPI for 300 DPI on a 2550 x 3300 image
+    target_width, target_height = 2550, 3300
+    target_dpi = 300
     
-#     # Get current DPI, default to 72 if not specified
-#     current_dpi = img.info.get('dpi', (72, 72))[0]  # Usually, both X and Y DPI are the same
+    # Get current DPI, default to 72 if not specified
+    current_dpi = img.info.get('dpi', (72, 72))[0]  # Usually, both X and Y DPI are the same
     
-#     # Adjust image size based on current DPI if not already at 300 DPI
-#     if current_dpi != target_dpi:
-#         scaling_factor = target_dpi / current_dpi
-#         new_width = int(img.width * scaling_factor)
-#         new_height = int(img.height * scaling_factor)
+    # Adjust image size based on current DPI if not already at 300 DPI
+    if current_dpi != target_dpi:
+        scaling_factor = target_dpi / current_dpi
+        new_width = int(img.width * scaling_factor)
+        new_height = int(img.height * scaling_factor)
         
-#         # Resize image to reach target DPI dimensions
-#         img = img.resize((new_width, new_height), Image.LANCZOS)
+        # Resize image gradually in steps if needed
+        while img.width > new_width * 1.5 or img.height > new_height * 1.5:
+            img = img.resize((img.width // 2, img.height // 2), Image.BILINEAR)
+        
+        # Final resize to reach exact target DPI dimensions
+        img = img.resize((new_width, new_height), Image.BILINEAR)
     
-#     # Final resize to standardize to 2550 x 3300 pixels if needed
-#     if img.width != target_width or img.height != target_height:
-#         img = img.resize((target_width, target_height), Image.LANCZOS)
+    # Final resize to standardize to 2550 x 3300 pixels if needed
+    if img.width != target_width or img.height != target_height:
+        img = img.resize((target_width, target_height), Image.BILINEAR)
     
-#     # Convert to PNG and save
-#     img = img.convert("RGBA")  # Ensure transparency support if needed
-#     img.save(OUTPUT_IMAGE_PATH, "PNG", dpi=(target_dpi, target_dpi))
+    # Convert to PNG and save
+    img = img.convert("RGBA")  # Ensure transparency support if needed
+    img.save(OUTPUT_IMAGE_PATH, "PNG", dpi=(target_dpi, target_dpi))
     
-#     # Return the output path and the final dimensions
-#     width, height = img.size
-#     return OUTPUT_IMAGE_PATH, width, height
+    # Explicitly close the image to free memory
+    img.close()
+    
+    # Return the output path and the final dimensions
+    return OUTPUT_IMAGE_PATH, img.width, img.height
+
 
 def image_to_png(image_path):
     OUTPUT_IMAGE_PATH1 = "Temp/temp1.png"
@@ -607,3 +558,194 @@ def drawColumnEdges(columns, image, height, width, coursesHeaderRow, OCR_Data):
 
 
     return imageCopy
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def process_image(filename, input_folder_path):
+
+    def remove_temporary_files():
+        # Remove temporary image file
+        OUTPUT_IMAGE_PATH1 = "Temp/temp1.png"
+        OUTPUT_IMAGE_PATH2 = "Temp/temp2.png"
+        if os.path.exists(OUTPUT_IMAGE_PATH1):
+            os.remove(OUTPUT_IMAGE_PATH1)
+        if os.path.exists(OUTPUT_IMAGE_PATH2):
+            os.remove(OUTPUT_IMAGE_PATH2)
+        # Remove temporary OCR_DATA .png
+        if os.path.exists(OCR_Data_Path):
+            os.remove(OCR_Data_Path)
+        if OCR_Data_Path2 is not None:
+            if os.path.exists(OCR_Data_Path2):
+                os.remove(OCR_Data_Path2)
+
+    def extract_data(png_path, height, width, page_number):
+        # do ocr read if necessary
+            result = run_ocr(png_path)
+            OCR_Data_Path = convert_OCR_page_result_to_json(result, filename, page_number)
+
+            #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+            with open(OCR_Data_Path, 'r') as json_file:
+                OCR_Data = json.load(json_file)
+
+
+            # originalImg = openJpgImage(standardized_png_path1)
+            textlessImg = removeText(png_path, OCR_Data)
+            CutoffStrings = ["standardized", "tests"]
+            toplessImg, coursesHeaderRow = removeTop(textlessImg, OCR_Data, CutoffStrings)
+
+            # column row stuff:
+            bottomlessImg = remove_img_bottom(toplessImg, coursesHeaderRow, height, width)
+
+            projection_profile = np.sum(bottomlessImg, axis=0)
+
+            blackPixProjProfile = createBlackPixelProjectionProfile(projection_profile)
+
+            columns = check_predicted_column_values(blackPixProjProfile, png_path, height) # stand png path var????
+
+            col1Rows, col2Rows, col3Rows = findTextRows(OCR_Data, columns, coursesHeaderRow)
+
+            rows = []
+            print("row 1:")
+            for row in col1Rows:
+                rows.append(row)
+                print(f"/t{row}")
+            print("row 2:")   
+            for row in col2Rows:
+                rows.append(row)
+                print(f"/t{row}")
+            print("row 3:")
+            for row in col3Rows:
+                rows.append(row)
+                print(f"/t{row}")
+
+            return rows, OCR_Data_Path
+
+    def process_pdf():
+        # standardize image format
+        standardized_png_path1, width1, height1, standardized_png_path2, width2, height2 = pdf_to_png(file_path)
+        
+        # STANDARD LOGIC
+        rows, OCR_Data_Path = extract_data(standardized_png_path1, height1, width1, 1)
+        celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows = check_CELDT_status(rows)
+
+        OCR_Data_Path2 = None
+        if standardized_png_path2 is not None:
+            print("logic for the second one...")
+            
+            # PAGE 2 ONLY LOGIC 
+            rows_page_2, OCR_Data_Path2 = extract_data(standardized_png_path1, height1, width1, 2)
+
+            celdt_detected_page_2, confirmed_celdt_rows_page_2, elpac_detected_page_2, elpac_rows_page_2 = check_CELDT_status(rows_page_2)
+            celdt_detected = celdt_detected or celdt_detected_page_2
+            elpac_detected = elpac_detected or elpac_detected_page_2
+            for row in confirmed_celdt_rows_page_2:
+                confirmed_celdt_rows.append(row)
+            for elpac_row in elpac_rows_page_2:
+                elpac_rows.append(elpac_row)
+
+        return celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows, OCR_Data_Path, OCR_Data_Path2
+    
+    
+    def process_png():
+        standardized_png, width, height = standardize_png(file_path)
+        
+        rows, OCR_Data_Path = extract_data(standardized_png, height, width, 1)
+        celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows = check_CELDT_status(rows)
+
+        return celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows, OCR_Data_Path
+        
+
+    def process_jpg():
+        standardized_png, width, height = jpg_to_png(file_path)
+        
+        rows, OCR_Data_Path = extract_data(standardized_png, height, width, 1)
+        celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows = check_CELDT_status(rows)
+
+        return celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows, OCR_Data_Path
+
+
+
+
+    print("processing transcript " + str(filename) + " in folder " + str(input_folder_path))
+
+    file_path = os.path.join(input_folder_path, filename)
+    file_extension = os.path.splitext(filename)[1]
+
+
+    file_extension = os.path.splitext(file_path)[1].lower()
+    OCR_Data_Path2 = None
+    if file_extension == ".png":
+        celdt_detected, confirmed_rows, elpac_detected, elpac_rows, OCR_Data_Path = process_png()
+    elif file_extension == ".pdf":
+        celdt_detected, confirmed_rows, elpac_detected, elpac_rows, OCR_Data_Path, OCR_Data_Path2 = process_pdf()
+    elif file_extension in [".jpg", ".jpeg"]:
+        celdt_detected, confirmed_rows, elpac_detected, elpac_rows, OCR_Data_Path = process_jpg()
+    elif file_extension == ".tiff":
+        raise ValueError(f"Unimplemented file type: {file_extension}")
+    else:
+        raise ValueError(f"file type {file_extension} not recognized")
+
+    
+
+
+    print("still going 1")
+    remove_temporary_files()
+    print("still going 1.1")
+    return celdt_detected, confirmed_rows, elpac_detected, elpac_rows    # dates, scores, score_types
