@@ -1,4 +1,5 @@
 import fitz
+import difflib
 from PIL import Image
 import cv2
 import copy
@@ -335,22 +336,38 @@ def image_to_png(image_path):
 
 
 
+# def check_for_transfer_worksheet(OCRData, threshold=0.9):
+#     print("~~~ 1")
+#     target = "transfer admission worksheet"
+
+#     for i in range(len(OCRData)):
+#         combined_text = ""
+#         for j in range(i, min(i + 3, len(OCRData))):
+#             chunk = OCRData[j]
+#             if chunk and chunk["text"]:
+#                 combined_text += " " + chunk["text"].lower()
+
+#         # Clean up extra spaces
+#         combined_text = combined_text.strip()
+
+#         # Get similarity ratio
+#         similarity = difflib.SequenceMatcher(None, combined_text, target).ratio()
+
+#         if similarity >= threshold:
+#             print(f"Match found (similarity={similarity:.2f}): {combined_text}")
+#             return True
+
+#     return False
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+def check_for_transfer_worksheet(OCRData):
+    target = "transfer admission worksheet"
+    for chunk in OCRData:
+        if chunk and "text" in chunk:
+            if target in chunk["text"].lower():
+                print(f"Found in single chunk: {chunk['text']}")
+                return True
+    return False
 
 
 
@@ -623,10 +640,13 @@ def process_image(filename, input_folder_path):
         # Remove temporary image file
         OUTPUT_IMAGE_PATH1 = "Temp/temp1.png"
         OUTPUT_IMAGE_PATH2 = "Temp/temp2.png"
+        OUTPUT_IMAGE_PATH = "Temp/temp.png"
         if os.path.exists(OUTPUT_IMAGE_PATH1):
             os.remove(OUTPUT_IMAGE_PATH1)
         if os.path.exists(OUTPUT_IMAGE_PATH2):
             os.remove(OUTPUT_IMAGE_PATH2)
+        if os.path.exists(OUTPUT_IMAGE_PATH):
+            os.remove(OUTPUT_IMAGE_PATH)
         # Remove temporary OCR_DATA .png
         if os.path.exists(OCR_Data_Path):
             os.remove(OCR_Data_Path)
@@ -643,6 +663,11 @@ def process_image(filename, input_folder_path):
 
             with open(OCR_Data_Path, 'r') as json_file:
                 OCR_Data = json.load(json_file)
+
+
+            # # # check for transfer worksheet
+            transfer_worksheet_found = check_for_transfer_worksheet(OCR_Data)
+
 
 
             # originalImg = openJpgImage(standardized_png_path1)
@@ -675,14 +700,14 @@ def process_image(filename, input_folder_path):
                 rows.append(row)
                 print(f"/t{row}")
 
-            return rows, OCR_Data_Path
+            return rows, OCR_Data_Path, transfer_worksheet_found
 
     def process_pdf():
         # standardize image format
         standardized_png_path1, width1, height1, standardized_png_path2, width2, height2 = pdf_to_png(file_path)
         
         # STANDARD LOGIC
-        rows, OCR_Data_Path = extract_data(standardized_png_path1, height1, width1, 1)
+        rows, OCR_Data_Path, transfer_worksheet_found = extract_data(standardized_png_path1, height1, width1, 1)
         celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows = check_CELDT_status(rows)
 
         OCR_Data_Path2 = None
@@ -690,7 +715,7 @@ def process_image(filename, input_folder_path):
             print("logic for the second one...")
             
             # PAGE 2 ONLY LOGIC 
-            rows_page_2, OCR_Data_Path2 = extract_data(standardized_png_path1, height1, width1, 2)
+            rows_page_2, OCR_Data_Path2, _ = extract_data(standardized_png_path1, height1, width1, 2)
 
             celdt_detected_page_2, confirmed_celdt_rows_page_2, elpac_detected_page_2, elpac_rows_page_2 = check_CELDT_status(rows_page_2)
             celdt_detected = celdt_detected or celdt_detected_page_2
@@ -700,25 +725,25 @@ def process_image(filename, input_folder_path):
             for elpac_row in elpac_rows_page_2:
                 elpac_rows.append(elpac_row)
 
-        return celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows, OCR_Data_Path, OCR_Data_Path2
+        return celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows, OCR_Data_Path, OCR_Data_Path2, transfer_worksheet_found
     
     
     def process_png():
         standardized_png, width, height = standardize_png(file_path)
         
-        rows, OCR_Data_Path = extract_data(standardized_png, height, width, 1)
+        rows, OCR_Data_Path, transfer_worksheet_found = extract_data(standardized_png, height, width, 1)
         celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows = check_CELDT_status(rows)
 
-        return celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows, OCR_Data_Path
+        return celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows, OCR_Data_Path, transfer_worksheet_found
         
 
     def process_jpg():
         standardized_png, width, height = jpg_to_png(file_path)
         
-        rows, OCR_Data_Path = extract_data(standardized_png, height, width, 1)
+        rows, OCR_Data_Path, transfer_worksheet_found = extract_data(standardized_png, height, width, 1)
         celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows = check_CELDT_status(rows)
 
-        return celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows, OCR_Data_Path
+        return celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows, OCR_Data_Path, transfer_worksheet_found
 
 
 
@@ -732,11 +757,11 @@ def process_image(filename, input_folder_path):
     file_extension = os.path.splitext(file_path)[1].lower()
     OCR_Data_Path2 = None
     if file_extension == ".png":
-        celdt_detected, confirmed_rows, elpac_detected, elpac_rows, OCR_Data_Path = process_png()
+        celdt_detected, confirmed_rows, elpac_detected, elpac_rows, OCR_Data_Path, transfer_worksheet_found = process_png()
     elif file_extension == ".pdf":
-        celdt_detected, confirmed_rows, elpac_detected, elpac_rows, OCR_Data_Path, OCR_Data_Path2 = process_pdf()
+        celdt_detected, confirmed_rows, elpac_detected, elpac_rows, OCR_Data_Path, OCR_Data_Path2, transfer_worksheet_found = process_pdf()
     elif file_extension in [".jpg", ".jpeg"]:
-        celdt_detected, confirmed_rows, elpac_detected, elpac_rows, OCR_Data_Path = process_jpg()
+        celdt_detected, confirmed_rows, elpac_detected, elpac_rows, OCR_Data_Path, transfer_worksheet_found = process_jpg()
     elif file_extension == ".tiff":
         raise ValueError(f"Unimplemented file type: {file_extension}")
     else:
@@ -748,4 +773,4 @@ def process_image(filename, input_folder_path):
     print("still going 1")
     remove_temporary_files()
     print("still going 1.1")
-    return celdt_detected, confirmed_rows, elpac_detected, elpac_rows    # dates, scores, score_types
+    return celdt_detected, confirmed_rows, elpac_detected, elpac_rows, transfer_worksheet_found    # dates, scores, score_types

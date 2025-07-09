@@ -33,10 +33,11 @@ def process_images_in_folder(folder_path):
                 file_path = os.path.join(folder_path, filename)
                 
                 # celdt_detected, dates, scores, score_types = process_image(filename, folder_path)
-                celdt_detected, confirmed_rows, elpac_detected, elpac_rows = process_image(filename, folder_path)
+                celdt_detected, confirmed_rows, elpac_detected, elpac_rows, transfer_worksheet_found = process_image(filename, folder_path)
                 print("still going 2")
                 # for match in matches:
                 #     print(match)
+                text_file.write(f"{filename}\n\tTransfer Admission Worksheet = {transfer_worksheet_found}\n")
                 text_file.write(f"{filename}\n\tCELDT results found = {celdt_detected}\n")
                 text_file.write(f"\tELPAC results found = {elpac_detected}\n")
                 print("still going 3")
