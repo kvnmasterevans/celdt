@@ -626,6 +626,52 @@ def drawColumnEdges(columns, image, height, width, coursesHeaderRow, OCR_Data):
 
 
 
+# Returns -1 if no result, otherwise centerpoitn of box is returned
+def extract_entry_and_exit_dates(OCR_results, rows):
+    print("extract entry and exit dates")
+
+    
+    entry_date_center = -1
+    entry_date_y = -1
+    exit_date_center = -1
+    exit_date_y = -1
+    text_box_height = 0
+    entry_date_text = ""
+    exit_date_text = ""
+
+    for chunk in OCR_results:
+        if chunk["text"] == "Entrv Date" or chunk["text"] == "Entry Date":
+            entry_date_center = ( chunk["bounding_box"][0]["x"] + chunk["bounding_box"][1]["x"] ) / 2
+            entry_date_y = ( chunk["bounding_box"][0]["y"] + chunk["bounding_box"][2]["y"] ) / 2
+            text_box_height = chunk["bounding_box"][2]["y"] - chunk["bounding_box"][0]["y"]
+        if chunk["text"] == "Exit Date":
+            exit_date_center = ( chunk["bounding_box"][0]["x"] + chunk["bounding_box"][1]["x"] ) / 2
+            exit_date_y = ( chunk["bounding_box"][0]["y"] + chunk["bounding_box"][2]["y"] ) / 2
+            text_box_height = chunk["bounding_box"][2]["y"] - chunk["bounding_box"][0]["y"]
+        
+
+
+        # if Entry Date text has been found then do logic on the text immediately below it
+        # (within text_box_height range)
+        if entry_date_center != -1 and \
+            chunk["bounding_box"][0]["x"] < entry_date_center and \
+            chunk["bounding_box"][1]["x"]  > entry_date_center and \
+            chunk["bounding_box"][0]["y"] > entry_date_y and \
+            chunk["bounding_box"][0]["y"] < entry_date_y + ( text_box_height * 3):
+
+            print("this should be the entry date text...")
+            entry_date_text = chunk["text"]
+
+        if exit_date_center != -1 and \
+            chunk["bounding_box"][0]["x"] < exit_date_center and \
+            chunk["bounding_box"][1]["x"]  > exit_date_center and \
+            chunk["bounding_box"][0]["y"] > exit_date_y and \
+            chunk["bounding_box"][0]["y"] < exit_date_y + ( text_box_height * 3):
+
+            print("this should be the entry date text...")
+            exit_date_text = chunk["text"]
+
+    return entry_date_text, exit_date_text
 
 
 
@@ -670,6 +716,7 @@ def process_image(filename, input_folder_path):
 
 
 
+
             # originalImg = openJpgImage(standardized_png_path1)
             textlessImg = removeText(png_path, OCR_Data)
             CutoffStrings = ["standardized", "tests"]
@@ -700,22 +747,28 @@ def process_image(filename, input_folder_path):
                 rows.append(row)
                 print(f"/t{row}")
 
-            return rows, OCR_Data_Path, transfer_worksheet_found
+
+            entry_date, exit_date = extract_entry_and_exit_dates(OCR_Data, rows)
+            
+            
+
+            return rows, OCR_Data_Path, transfer_worksheet_found, entry_date, exit_date
 
     def process_pdf():
         # standardize image format
         standardized_png_path1, width1, height1, standardized_png_path2, width2, height2 = pdf_to_png(file_path)
         
         # STANDARD LOGIC
-        rows, OCR_Data_Path, transfer_worksheet_found = extract_data(standardized_png_path1, height1, width1, 1)
+        rows, OCR_Data_Path, transfer_worksheet_found, entry_date, exit_date = extract_data(standardized_png_path1, height1, width1, 1)
         celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows = check_CELDT_status(rows)
+        
 
         OCR_Data_Path2 = None
         if standardized_png_path2 is not None:
             print("logic for the second one...")
             
             # PAGE 2 ONLY LOGIC 
-            rows_page_2, OCR_Data_Path2, _ = extract_data(standardized_png_path1, height1, width1, 2)
+            rows_page_2, OCR_Data_Path2, _, _, _ = extract_data(standardized_png_path1, height1, width1, 2)
 
             celdt_detected_page_2, confirmed_celdt_rows_page_2, elpac_detected_page_2, elpac_rows_page_2 = check_CELDT_status(rows_page_2)
             celdt_detected = celdt_detected or celdt_detected_page_2
@@ -725,25 +778,25 @@ def process_image(filename, input_folder_path):
             for elpac_row in elpac_rows_page_2:
                 elpac_rows.append(elpac_row)
 
-        return celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows, OCR_Data_Path, OCR_Data_Path2, transfer_worksheet_found
+        return celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows, OCR_Data_Path, OCR_Data_Path2, transfer_worksheet_found, entry_date, exit_date
     
     
     def process_png():
         standardized_png, width, height = standardize_png(file_path)
         
-        rows, OCR_Data_Path, transfer_worksheet_found = extract_data(standardized_png, height, width, 1)
+        rows, OCR_Data_Path, transfer_worksheet_found, entry_date, exit_date = extract_data(standardized_png, height, width, 1)
         celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows = check_CELDT_status(rows)
 
-        return celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows, OCR_Data_Path, transfer_worksheet_found
+        return celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows, OCR_Data_Path, transfer_worksheet_found, entry_date, exit_date
         
 
     def process_jpg():
         standardized_png, width, height = jpg_to_png(file_path)
         
-        rows, OCR_Data_Path, transfer_worksheet_found = extract_data(standardized_png, height, width, 1)
+        rows, OCR_Data_Path, transfer_worksheet_found, entry_date, exit_date = extract_data(standardized_png, height, width, 1)
         celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows = check_CELDT_status(rows)
 
-        return celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows, OCR_Data_Path, transfer_worksheet_found
+        return celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows, OCR_Data_Path, transfer_worksheet_found, entry_date, exit_date
 
 
 
@@ -757,11 +810,11 @@ def process_image(filename, input_folder_path):
     file_extension = os.path.splitext(file_path)[1].lower()
     OCR_Data_Path2 = None
     if file_extension == ".png":
-        celdt_detected, confirmed_rows, elpac_detected, elpac_rows, OCR_Data_Path, transfer_worksheet_found = process_png()
+        celdt_detected, confirmed_rows, elpac_detected, elpac_rows, OCR_Data_Path, transfer_worksheet_found, entry_date, exit_date = process_png()
     elif file_extension == ".pdf":
-        celdt_detected, confirmed_rows, elpac_detected, elpac_rows, OCR_Data_Path, OCR_Data_Path2, transfer_worksheet_found = process_pdf()
+        celdt_detected, confirmed_rows, elpac_detected, elpac_rows, OCR_Data_Path, OCR_Data_Path2, transfer_worksheet_found, entry_date, exit_date = process_pdf()
     elif file_extension in [".jpg", ".jpeg"]:
-        celdt_detected, confirmed_rows, elpac_detected, elpac_rows, OCR_Data_Path, transfer_worksheet_found = process_jpg()
+        celdt_detected, confirmed_rows, elpac_detected, elpac_rows, OCR_Data_Path, transfer_worksheet_found, entry_date, exit_date = process_jpg()
     elif file_extension == ".tiff":
         raise ValueError(f"Unimplemented file type: {file_extension}")
     else:
@@ -771,6 +824,6 @@ def process_image(filename, input_folder_path):
 
 
     print("still going 1")
-    remove_temporary_files()
+    # remove_temporary_files()
     print("still going 1.1")
-    return celdt_detected, confirmed_rows, elpac_detected, elpac_rows, transfer_worksheet_found    # dates, scores, score_types
+    return celdt_detected, confirmed_rows, elpac_detected, elpac_rows, entry_date, exit_date    # dates, scores, score_types

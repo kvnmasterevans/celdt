@@ -81,6 +81,45 @@ def find_rows(detectedText, left_string_segment):
 
 
 
+
+
+# def extract_entry_and_exit_dates(json_ocr_data, course_id_line, entry_date_coord, exit_date_coord):
+#     print("entry and exit dates from x_coordinate...")
+#     rowThreshold = 20  # ??? need to choose appropriate threshold
+#     possible_rows = [] # should this be a list of dicts with another list embedded in dict to store x pos's??? - yes??? 
+#     # [{"row": num, "x's": [num, num, num]}]
+#     num_poss_rows_col1 = 0
+#     for detectedText in json_ocr_data:
+#         # determine location of rows: 
+#         # find possible rows & store the x-pattern data
+        
+#         # find rows:
+#         rowCenter = ( detectedText["bounding_box"][0]["y"] + detectedText["bounding_box"][3]["y"] ) / 2
+#         rowDetected = False
+#         for poss_row in possible_rows:
+#             if (rowCenter < (poss_row["row"] + rowThreshold) )and (rowCenter >  (poss_row["row"] - rowThreshold) ): # matches a known row
+
+#                 rowDetected = True
+#                 if len(detectedText["text"]) > 0:
+#                     poss_row["x's"].append( [ detectedText["bounding_box"][0]["x"], detectedText["bounding_box"][1]["x"] ] ) # store necessary data.... y is row,now we need x vals???
+#                     poss_row["text"].append(detectedText["text"] )
+#                 break
+#                 # if found do logic to add and then 'break'
+
+#         # if not found then add to rows    
+#         if rowDetected == False:
+#             # this part needs to change
+#             if len(detectedText["text"]) > 0:
+#                 possible_rows.append({"row":rowCenter, "x's":[ detectedText["bounding_box"][0]["x"], detectedText["bounding_box"][1]["x"] ], \
+#                                         "text": [ detectedText["text"] ]}) # when row not found (new row)
+#                 num_poss_rows_col1 += 1
+
+#     for row in possible_rows:
+#         if row
+
+
+
+
 # finds rows of text within the first column below the course-id line 
 # (*though goes to bottom of document, because column bottoms not yet known)
 # assembles all text on each line into a single 'row' value

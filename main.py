@@ -33,9 +33,9 @@ def process_images_in_folder(folder_path):
                 file_path = os.path.join(folder_path, filename)
                 
                 # celdt_detected, dates, scores, score_types = process_image(filename, folder_path)
-                celdt_detected, confirmed_rows, elpac_detected, elpac_rows, transfer_worksheet_found = process_image(filename, folder_path)
+                celdt_detected, confirmed_rows, elpac_detected, elpac_rows, transfer_worksheet_found, entry_date, exit_date = process_image(filename, folder_path)
                 print("still going 2")
-                # for match in matches:
+                # for match in matches:, entry_date, exit_date
                 #     print(match)
                 text_file.write(f"{filename}\n\tTransfer Admission Worksheet = {transfer_worksheet_found}\n")
                 text_file.write(f"{filename}\n\tCELDT results found = {celdt_detected}\n")
@@ -58,6 +58,11 @@ def process_images_in_folder(folder_path):
                     for row in confirmed_rows:
                         text_file.write(f"\t\t{row}\n")
                         csv_writer.writerow([filename, row])
+
+                if len(entry_date) > 0:
+                    print("ENTRY DATE FOUND!!!!   " + entry_date)
+                if len(exit_date) > 0:
+                    print("EXIT DATE FOUND!!!!   " + exit_date)
                 
                 
                     print("still going 7")
