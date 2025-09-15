@@ -809,6 +809,7 @@ def process_image(filename, input_folder_path):
 
     file_extension = os.path.splitext(file_path)[1].lower()
     OCR_Data_Path2 = None
+    os.makedirs("Temp", exist_ok=True)
     if file_extension == ".png":
         celdt_detected, confirmed_rows, elpac_detected, elpac_rows, OCR_Data_Path, transfer_worksheet_found, entry_date, exit_date = process_png()
     elif file_extension == ".pdf":
@@ -826,4 +827,5 @@ def process_image(filename, input_folder_path):
     print("still going 1")
     # remove_temporary_files()
     print("still going 1.1")
-    return celdt_detected, confirmed_rows, elpac_detected, elpac_rows, entry_date, exit_date    # dates, scores, score_types
+    return celdt_detected, confirmed_rows, elpac_detected, elpac_rows, \
+        transfer_worksheet_found, entry_date, exit_date    # dates, scores, score_types
