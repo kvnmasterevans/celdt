@@ -33,8 +33,9 @@ def process_images_in_folder(folder_path):
                 file_path = os.path.join(folder_path, filename)
                 
                 # celdt_detected, dates, scores, score_types = process_image(filename, folder_path)
-                celdt_detected, confirmed_rows, elpac_detected, elpac_rows, transfer_worksheet_found, entry_date, exit_date = process_image(filename, folder_path)
+                celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows, transfer_worksheet_found, entry_date, exit_date, celdt_date, elpac_date = process_image(filename, folder_path)
                 print("still going 2")
+                print(f"Dates:    entry: {entry_date}, exit: {exit_date}, elpac: {elpac_date}, celdt: {celdt_date}")
                 # for match in matches:, entry_date, exit_date
                 #     print(match)
                 text_file.write(f"{filename}\n\tTransfer Admission Worksheet = {transfer_worksheet_found}\n")
@@ -42,7 +43,7 @@ def process_images_in_folder(folder_path):
                 text_file.write(f"\tELPAC results found = {elpac_detected}\n")
                 print("still going 3")
 
-                csv_writer.writerow([filename, (celdt_detected or elpac_detected)])
+                csv_writer.writerow([filename, f" CELDT or ELPAC Detected = {(celdt_detected or elpac_detected)}"])
                 if elpac_detected or celdt_detected:
                     text_file.write("\t details:\n")
 
@@ -52,17 +53,25 @@ def process_images_in_folder(folder_path):
                     for row in elpac_rows:
                         text_file.write(f"\t\t{row}\n")
                         csv_writer.writerow([filename, row])
+                print(f"CELDT Detected = {celdt_detected}")
                 if celdt_detected == True: # and dates and scores and score_types:
                     print("celdt_detected")
                     text_file.write(f"\t\tCELDT data\n")
-                    for row in confirmed_rows:
+                    for row in confirmed_celdt_rows:
                         text_file.write(f"\t\t{row}\n")
                         csv_writer.writerow([filename, row])
 
-                if len(entry_date) > 0:
+
+                if entry_date != None:
                     print("ENTRY DATE FOUND!!!!   " + entry_date)
-                if len(exit_date) > 0:
+                    csv_writer.writerow([filename, f" entry date: {entry_date}"])
+                else:
+                    csv_writer.writerow([filename, " entry date not found"])
+                if exit_date != None:
                     print("EXIT DATE FOUND!!!!   " + exit_date)
+                    csv_writer.writerow([filename, f" exit date: {exit_date}"])
+                else:
+                    csv_writer.writerow([filename, " exit date not found"])
                 
                 
                     print("still going 7")

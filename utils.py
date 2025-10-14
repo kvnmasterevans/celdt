@@ -633,43 +633,57 @@ def extract_entry_and_exit_dates(OCR_results, rows):
     
     entry_date_center = -1
     entry_date_y = -1
+    entry_date_b_box = None
     exit_date_center = -1
     exit_date_y = -1
+    exit_date_b_box = None
     text_box_height = 0
     entry_date_text = ""
     exit_date_text = ""
 
     for chunk in OCR_results:
-        if chunk["text"] == "Entrv Date" or chunk["text"] == "Entry Date":
+        if chunk["text"] == "Entrv Date" or chunk["text"] == "Entry Date" and entry_date_center == -1:
             entry_date_center = ( chunk["bounding_box"][0]["x"] + chunk["bounding_box"][1]["x"] ) / 2
-            entry_date_y = ( chunk["bounding_box"][0]["y"] + chunk["bounding_box"][2]["y"] ) / 2
+            # entry_date_y = ( chunk["bounding_box"][0]["y"] + chunk["bounding_box"][2]["y"] ) / 2
+            entry_date_y = chunk["bounding_box"][2]["y"]
             text_box_height = chunk["bounding_box"][2]["y"] - chunk["bounding_box"][0]["y"]
-        if chunk["text"] == "Exit Date":
+            entry_date_b_box = chunk["bounding_box"]
+            print(f"entry date y = {entry_date_y}. entry date center = {entry_date_center}. text box height: {text_box_height}")
+        if chunk["text"] == "Exit Date" and exit_date_center == -1:
             exit_date_center = ( chunk["bounding_box"][0]["x"] + chunk["bounding_box"][1]["x"] ) / 2
-            exit_date_y = ( chunk["bounding_box"][0]["y"] + chunk["bounding_box"][2]["y"] ) / 2
+            # exit_date_y = ( chunk["bounding_box"][0]["y"] + chunk["bounding_box"][2]["y"] ) / 2
+            exit_date_y = chunk["bounding_box"][2]["y"]
             text_box_height = chunk["bounding_box"][2]["y"] - chunk["bounding_box"][0]["y"]
+            exit_date_b_box = chunk["bounding_box"]
+            print(f"exit date y = {exit_date_y}. exit date center = {exit_date_center}. text box height: {text_box_height}")
         
 
 
         # if Entry Date text has been found then do logic on the text immediately below it
         # (within text_box_height range)
         if entry_date_center != -1 and \
-            chunk["bounding_box"][0]["x"] < entry_date_center and \
-            chunk["bounding_box"][1]["x"]  > entry_date_center and \
+            chunk["bounding_box"][0]["x"] < entry_date_b_box[1]["x"] and \
+            chunk["bounding_box"][1]["x"]  > entry_date_b_box[0]["x"] and \
             chunk["bounding_box"][0]["y"] > entry_date_y and \
-            chunk["bounding_box"][0]["y"] < entry_date_y + ( text_box_height * 3):
+            chunk["bounding_box"][0]["y"] < entry_date_y + ( text_box_height * 2):
 
-            print("this should be the entry date text...")
-            entry_date_text = chunk["text"]
+            # entry_date_text = chunk["text"]
+            entry_date_text += chunk["text"]
+            print(f"this should be the entry date text: {entry_date_text}")
+            found_center = ( chunk["bounding_box"][0]["x"] + chunk["bounding_box"][1]["x"] ) / 2
+            print(f"... and this is  it's coordinate: {found_center}")
 
         if exit_date_center != -1 and \
-            chunk["bounding_box"][0]["x"] < exit_date_center and \
-            chunk["bounding_box"][1]["x"]  > exit_date_center and \
+            chunk["bounding_box"][0]["x"] < entry_date_b_box[1]["x"] and \
+            chunk["bounding_box"][1]["x"]  > exit_date_b_box[0]["x"] and \
             chunk["bounding_box"][0]["y"] > exit_date_y and \
-            chunk["bounding_box"][0]["y"] < exit_date_y + ( text_box_height * 3):
+            chunk["bounding_box"][0]["y"] < exit_date_y + ( text_box_height * 2):
 
-            print("this should be the entry date text...")
-            exit_date_text = chunk["text"]
+            # exit_date_text = chunk["text"]
+            exit_date_text += chunk["text"]
+            print(f"this should be the exit date text: {exit_date_text}")
+            found_center = ( chunk["bounding_box"][0]["x"] + chunk["bounding_box"][1]["x"] ) / 2
+            print(f"... and this is  it's coordinate: {found_center}")
 
     return entry_date_text, exit_date_text
 
@@ -768,11 +782,17 @@ def process_image(filename, input_folder_path):
             print("logic for the second one...")
             
             # PAGE 2 ONLY LOGIC 
-            rows_page_2, OCR_Data_Path2, _, _, _ = extract_data(standardized_png_path1, height1, width1, 2)
+            rows_page_2, OCR_Data_Path2, _, _, _ = extract_data(standardized_png_path2, height1, width1, 2)
 
             celdt_detected_page_2, confirmed_celdt_rows_page_2, elpac_detected_page_2, elpac_rows_page_2 = check_CELDT_status(rows_page_2)
+            print(f"celdt detection within pdf page 2 = {celdt_detected_page_2}")
             celdt_detected = celdt_detected or celdt_detected_page_2
             elpac_detected = elpac_detected or elpac_detected_page_2
+            print(f"page 2 rows:")
+            for row in rows_page_2:
+                rows.append(row)
+                print(f"page 2 row: {row}")
+
             for row in confirmed_celdt_rows_page_2:
                 confirmed_celdt_rows.append(row)
             for elpac_row in elpac_rows_page_2:
@@ -811,21 +831,73 @@ def process_image(filename, input_folder_path):
     OCR_Data_Path2 = None
     os.makedirs("Temp", exist_ok=True)
     if file_extension == ".png":
-        celdt_detected, confirmed_rows, elpac_detected, elpac_rows, OCR_Data_Path, transfer_worksheet_found, entry_date, exit_date = process_png()
+        celdt_detected, celdt_rows, elpac_detected, elpac_rows, OCR_Data_Path, transfer_worksheet_found, entry_date_string, exit_date_string = process_png()
     elif file_extension == ".pdf":
-        celdt_detected, confirmed_rows, elpac_detected, elpac_rows, OCR_Data_Path, OCR_Data_Path2, transfer_worksheet_found, entry_date, exit_date = process_pdf()
+        celdt_detected, celdt_rows, elpac_detected, elpac_rows, OCR_Data_Path, OCR_Data_Path2, transfer_worksheet_found, entry_date_string, exit_date_string = process_pdf()
     elif file_extension in [".jpg", ".jpeg"]:
-        celdt_detected, confirmed_rows, elpac_detected, elpac_rows, OCR_Data_Path, transfer_worksheet_found, entry_date, exit_date = process_jpg()
+        celdt_detected, celdt_rows, elpac_detected, elpac_rows, OCR_Data_Path, transfer_worksheet_found, entry_date_string, exit_date_string = process_jpg()
     elif file_extension == ".tiff":
         raise ValueError(f"Unimplemented file type: {file_extension}")
     else:
         raise ValueError(f"file type {file_extension} not recognized")
 
-    
+    celdt_date = extract_4_digit_dates_from_strings(celdt_rows)
+    elpac_date = extract_4_digit_dates_from_strings(elpac_rows)
+
+
+    entry_date = extract_8_digit_dates_from_strings(entry_date_string)
+    exit_date = extract_8_digit_dates_from_strings(exit_date_string)
 
 
     print("still going 1")
     # remove_temporary_files()
     print("still going 1.1")
-    return celdt_detected, confirmed_rows, elpac_detected, elpac_rows, \
-        transfer_worksheet_found, entry_date, exit_date    # dates, scores, score_types
+    return celdt_detected, celdt_rows, elpac_detected, elpac_rows, \
+        transfer_worksheet_found, entry_date, exit_date, celdt_date, elpac_date    # dates, scores, score_types
+
+
+
+
+
+def extract_8_digit_dates_from_strings(string_with_date):
+    import re
+
+    # Regular expression for dd/dd/dd (two digits / two digits / two digits)
+    # pattern = r"\b\d{2}/\d{2}/\d{2}\b"
+    pattern = r"\d{2}/\d{2}/\d{4}"
+
+    text = string_with_date
+    match = re.search(pattern, text)
+
+    if match:
+        first_date = match.group()
+        print("First date found:", first_date)
+        return first_date
+
+    else:
+        print("No date found")
+        return None
+
+def extract_4_digit_dates_from_strings(strings_with_date):
+    import re
+
+    date = None
+
+    # Regular expression for dd/dd (two digits / two digits)
+    # pattern = r"\b\d{2}/\d{2}\b"
+    pattern = r"\d{2}/\d{2}"
+
+    for string in strings_with_date:
+        if date == None:
+            text = string
+            match = re.search(pattern, text)
+
+            if match:
+                date = match.group()
+                print("First date found:", date)
+                return date
+
+    
+    print("No date found")
+    return None
+        
