@@ -521,14 +521,14 @@ def check_header_rows_2_and_3(header_row_pos, column_edges, OCR_Data):
 # col1Rows is the rows found in findTextRows()
 # such that rows are beneath the "course ID" courses_header_line
 # and contained within the width of the row
-def findMatchingRowPatterns(col1Rows, courses_header_line, column_right_edge):
+def findMatchingRowPatterns(colRows, courses_header_line, column_right_edge):
 
 
 
     # find all rows with patterns matching the first 5 rows
     def find_initial_matching_pattern_indexes():
         pat1Matches = []
-        for i, row in enumerate(col1Rows): # will always detect first rows...
+        for i, row in enumerate(colRows): # will always detect first rows...
             if _compareRows(row, row1, column_right_edge) \
                 or _compareRows(row, row2, column_right_edge) \
                 or _compareRows(row, row3, column_right_edge) \
@@ -543,8 +543,8 @@ def findMatchingRowPatterns(col1Rows, courses_header_line, column_right_edge):
     # (which is the final index)
     def find_lowest_matching_coordinate_from_matching_indexes():
         
-        if len(col1Rows) > 0 and len(pat1MatchIndexes) > 0:
-            lowestPat1 = col1Rows[pat1MatchIndexes[-1]]["row"]
+        if len(colRows) > 0 and len(pat1MatchIndexes) > 0:
+            lowestPat1 = colRows[pat1MatchIndexes[-1]]["row"]
         else:
             print("ERROR: no pattern 1 matches found (rowUtils.py findMatchingRowPatterns())")
             print("or no pat1MatchIndexes")
@@ -553,7 +553,7 @@ def findMatchingRowPatterns(col1Rows, courses_header_line, column_right_edge):
     # find internal patterns between top and lowest matched patterns
     def find_encapsulated_patterns(lowestPattern):  
         foundPatterns = []
-        for row in col1Rows:
+        for row in colRows:
             patternFound = False
             for pattern in foundPatterns:
                 if _compareRows(pattern, row, column_right_edge):
@@ -568,10 +568,10 @@ def findMatchingRowPatterns(col1Rows, courses_header_line, column_right_edge):
 
     def find_largest_course_data_vertical_gap_between_lines():
         largest_gap = 0
-        for i, row in enumerate(col1Rows):
+        for i, row in enumerate(colRows):
             if row["row"] < lowestPat1:
                 if i > 0:
-                    row_difference = abs(row["row"] - col1Rows[i-1]["row"])
+                    row_difference = abs(row["row"] - colRows[i-1]["row"])
                     if row_difference > largest_gap:
                         largest_gap = row_difference
             else:
@@ -587,14 +587,14 @@ def findMatchingRowPatterns(col1Rows, courses_header_line, column_right_edge):
         largest_vertical_gap = find_largest_course_data_vertical_gap_between_lines()
         unfound_counter = 0
         row1Bottom = courses_header_line # initialize row1Bottom to top of possible course lines
-        for i, row in enumerate(col1Rows):
+        for i, row in enumerate(colRows):
             patternFound = False
             if i == 0:
                 dist_from_header = abs(row["row"] - courses_header_line)
                 if dist_from_header > largest_vertical_gap * 5:
                     return courses_header_line
             if i > 0:
-                row_diff = abs(col1Rows[i]["row"] - col1Rows[i-1]["row"])
+                row_diff = abs(colRows[i]["row"] - colRows[i-1]["row"])
                 if row_diff > (largest_vertical_gap * 1.2):
                     break
 
@@ -606,7 +606,7 @@ def findMatchingRowPatterns(col1Rows, courses_header_line, column_right_edge):
             if patternFound:
                 unfound_counter = 0
                 if i > 0:
-                    row1Bottom = col1Rows[i]["row"]
+                    row1Bottom = colRows[i]["row"]
             else:
                 unfound_counter += 1
                 _compareRows(pat, row, right_boundary, True) # just to display print comparisons within function...
@@ -621,11 +621,11 @@ def findMatchingRowPatterns(col1Rows, courses_header_line, column_right_edge):
 
 
 
-    row1 = col1Rows[0]
-    row2 = col1Rows[1]
-    row3 = col1Rows[2]
-    row4 = col1Rows[3]
-    row5 = col1Rows[4]
+    row1 = colRows[0]
+    row2 = colRows[1]
+    row3 = colRows[2]
+    row4 = colRows[3]
+    row5 = colRows[4]
     first_patterns = [row1, row2, row3, row4, row5]
     
     pat1MatchIndexes = find_initial_matching_pattern_indexes()
