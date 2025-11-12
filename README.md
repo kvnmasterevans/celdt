@@ -111,7 +111,9 @@ The project consists of **five main functional files:**
 ---
 
 ## 🐞 Known Issues
-- Some transcripts cause a `list index out of range` error during data extraction
+- Some transcripts cause a `list index out of range` error during data extraction 
+  - This error occurs in the FinalizeColumns.py in the ColumnConfirm3 method
+  - where the index is greater than the length of proj_profile via proj_profile[index]
 
 ---
 
