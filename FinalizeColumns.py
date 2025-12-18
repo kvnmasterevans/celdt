@@ -117,8 +117,8 @@ def columnConfirm3(index, proj_profile):
     for i in range(625):
         if index - i >=0 and index < ( len(proj_profile) - 1 ):
             try:
-                print(f" test first index {proj_profile[index - i]} ")
-                print(f" test second index {proj_profile[index]} ")
+                # print(f" test first index {proj_profile[index - i]} ")
+                # print(f" test second index {proj_profile[index]} ")
                 if proj_profile[index] < proj_profile[index - i]:
                     upperCheckValid = False
             except IndexError:
