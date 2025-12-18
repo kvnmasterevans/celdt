@@ -9,7 +9,7 @@ import json
 import os
 from datetime import datetime
 from rowUtilsNew import check_header_rows_2_and_3, findTextRows, findMatchingRowPatterns
-from FinalizeColumns import check_predicted_column_values
+from FinalizeColumns import    check_predicted_column_values
 from check_for_CELDT import check_CELDT_status
 
 
@@ -134,7 +134,15 @@ def run_ocr(png_img_path):
     # pix.save(OUTPUT_IMAGE_PATH)
     print("starting ocr ...")
     reader = easyocr.Reader(['en'], gpu=False)
-    result = reader.readtext(png_img_path) # OUTPUT_IMAGE_PATH
+    print("Reader set...")
+    # result = reader.readtext(png_img_path) # OUTPUT_IMAGE_PATH
+
+    try:
+        result = reader.readtext(png_img_path)
+        print("OCR finished successfully")
+    except Exception as e:
+        print("OCR failed:", repr(e))
+
     print("ocr finished")
 
     return result
@@ -234,12 +242,80 @@ def pdf_to_png(pdf_path):
         width2 = None
     height1 = pix1.height
     width1 = pix1.width
+
+
+    # --- Check with PIL ---
+    im = Image.open(OUTPUT_IMAGE_PATH1)
+    print("PIL mode:", im.mode)  # should be "RGB" or "L" (grayscale)
+
+    # --- Check with OpenCV ---
+    img_cv = cv2.imread(OUTPUT_IMAGE_PATH1, cv2.IMREAD_UNCHANGED)
+    print("OpenCV shape:", img_cv.shape)  # (height, width, channels)
+    if len(img_cv.shape) == 2:
+        print("OpenCV detected grayscale image (1 channel)")
+    else:
+        print("OpenCV detected", img_cv.shape[2], "channels")
     
     print("end pdf to png...")
+    print("PDF image size:", pix1.width, "x", pix1.height)
     return OUTPUT_IMAGE_PATH1, width1, height1, OUTPUT_IMAGE_PATH2, width2, height2
 
-def single_pdf_to_png():
-    print("new logic?")
+
+# import math
+# def pdf_to_png(pdf_path):
+#     print("pdf to png...")
+#     SCALING_FACTOR = 300 / 72  # Standard DPI
+#     MAX_RAM_BYTES = 1_000_000_000  # ~1 GB safe for OCR
+
+#     OUTPUT_IMAGE_PATH1 = "Temp/temp1.png"
+#     OUTPUT_IMAGE_PATH2 = "Temp/temp2.png"
+
+#     pdf_document = fitz.open(pdf_path)
+#     pdf_page1 = pdf_document.load_page(0)
+#     print("page 1 loaded....")
+#     pix1 = pdf_page1.get_pixmap(matrix=fitz.Matrix(SCALING_FACTOR, SCALING_FACTOR))
+#     pix1.save(OUTPUT_IMAGE_PATH1)
+
+#     # --- Check memory usage and downscale if needed ---
+#     im1 = Image.open(OUTPUT_IMAGE_PATH1)
+#     width1, height1 = im1.size
+#     channels1 = len(im1.getbands())  # usually 3
+#     mem_estimate = width1 * height1 * channels1 * 4 * 12  # rough EasyOCR factor
+#     if mem_estimate > MAX_RAM_BYTES:
+#         scale = math.sqrt(MAX_RAM_BYTES / mem_estimate)
+#         new_size = (int(width1 * scale), int(height1 * scale))
+#         im1 = im1.resize(new_size)
+#         im1.save(OUTPUT_IMAGE_PATH1)
+#         width1, height1 = new_size
+#         print(f"Downscaled first page to {new_size} to fit memory")
+
+#     # --- Repeat for second page if it exists ---
+#     if len(pdf_document) > 1:
+#         pdf_page2 = pdf_document.load_page(1)
+#         pix2 = pdf_page2.get_pixmap(matrix=fitz.Matrix(SCALING_FACTOR, SCALING_FACTOR))
+#         OUTPUT_IMAGE_PATH2 = "Temp/temp2.png"
+#         pix2.save(OUTPUT_IMAGE_PATH2)
+
+#         im2 = Image.open(OUTPUT_IMAGE_PATH2)
+#         width2, height2 = im2.size
+#         channels2 = len(im2.getbands())
+#         mem_estimate2 = width2 * height2 * channels2 * 4 * 12
+#         if mem_estimate2 > MAX_RAM_BYTES:
+#             scale = math.sqrt(MAX_RAM_BYTES / mem_estimate2)
+#             new_size2 = (int(width2 * scale), int(height2 * scale))
+#             im2 = im2.resize(new_size2)
+#             im2.save(OUTPUT_IMAGE_PATH2)
+#             width2, height2 = new_size2
+#             print(f"Downscaled second page to {new_size2} to fit memory")
+#     else:
+#         OUTPUT_IMAGE_PATH2 = None
+#         width2 = height2 = None
+
+#     print("end pdf to png...")
+#     return OUTPUT_IMAGE_PATH1, width1, height1, OUTPUT_IMAGE_PATH2, width2, height2
+
+# def single_pdf_to_png():
+#     print("new logic?")
 
 
 def jpg_to_png(image_path):
@@ -717,7 +793,9 @@ def process_image(filename, input_folder_path):
     def extract_data(png_path, height, width, page_number):
         # do ocr read if necessary
             result = run_ocr(png_path)
+            print("Made it here ...")
             OCR_Data_Path = convert_OCR_page_result_to_json(result, filename, page_number)
+            print("converted to JSON")
 
             #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -727,26 +805,35 @@ def process_image(filename, input_folder_path):
 
             # # # check for transfer worksheet
             transfer_worksheet_found = check_for_transfer_worksheet(OCR_Data)
+            print("Checked for transfer worksheet properly...")
 
 
 
 
             # originalImg = openJpgImage(standardized_png_path1)
             textlessImg = removeText(png_path, OCR_Data)
+            print("text removed...")
             CutoffStrings = ["standardized", "tests"]
             toplessImg, coursesHeaderRow = removeTop(textlessImg, OCR_Data, CutoffStrings)
+            print("Top removed...")
 
             # column row stuff:
             bottomlessImg = remove_img_bottom(toplessImg, coursesHeaderRow, height, width)
+            print("bottom removed...")
 
             projection_profile = np.sum(bottomlessImg, axis=0)
-
+            print("projection summed...")
             blackPixProjProfile = createBlackPixelProjectionProfile(projection_profile)
+            print("projection profile created...")
 
-            columns = check_predicted_column_values(blackPixProjProfile, png_path, height) # stand png path var????
 
+            
+            # columns = detect_four_columns( blackPixProjProfile)       # blackPixProjProfile, png_path, height) # stand png path var????
+            columns = check_predicted_column_values(blackPixProjProfile, png_path, height)
+            
+            print("column vals checked...")
             col1Rows, col2Rows, col3Rows = findTextRows(OCR_Data, columns, coursesHeaderRow)
-
+            print("text rows found...")
             rows = []
             print("row 1:")
             for row in col1Rows:
@@ -760,6 +847,7 @@ def process_image(filename, input_folder_path):
             for row in col3Rows:
                 rows.append(row)
                 print(f"/t{row}")
+            print("Rows created correctly...")
 
 
             entry_date, exit_date = extract_entry_and_exit_dates(OCR_Data, rows)

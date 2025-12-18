@@ -63,6 +63,7 @@ def columnConfirm(index, proj_profile):
     return columnConfirmed
 
 
+# actually does nothing because its all commented out
 def columnConfirm2(index1, index2, index3, index4):
     # def checkColumnDiffs():
     #     if diff1 < abs(avg1 - 2*stDev1) \
@@ -95,6 +96,7 @@ def columnConfirm2(index1, index2, index3, index4):
     return True
 
 
+# checks local maximum
 def columnConfirm3(index, proj_profile):
     def greater_than_neighboring_indexes():
         print("cycle through indexes")
@@ -113,9 +115,15 @@ def columnConfirm3(index, proj_profile):
 
 
     for i in range(625):
-        if index - i < profile_len:
-            if proj_profile[index] < proj_profile[index - i]:
-                upperCheckValid = False
+        if index - i >=0 and index < ( len(proj_profile) - 1 ):
+            try:
+                print(f" test first index {proj_profile[index - i]} ")
+                print(f" test second index {proj_profile[index]} ")
+                if proj_profile[index] < proj_profile[index - i]:
+                    upperCheckValid = False
+            except IndexError:
+                print(f"IndexError at index={index}, i={i}, len={len(proj_profile)}")
+                raise  # re-raise to stop or show traceback if you want
 
 
     if upperCheckValid and lowerCheckValid:
@@ -156,7 +164,7 @@ def check_predicted_column_values(proj_profile, original_jpg_path, height):
             if (i >= profile_length * 3 / 4):
                 Quad4.append([pixelcount, i])
 
-
+    print("Profile enumerated over ...")
 
     # how to store unsorted?
     orig1 = Quad1
@@ -169,7 +177,7 @@ def check_predicted_column_values(proj_profile, original_jpg_path, height):
     Quad2.sort(reverse = True, key = lambda x: x[0])
     Quad3.sort(reverse = True, key = lambda x: x[0])
     Quad4.sort(reverse = True, key = lambda x: x[0])
-
+    print("Sorted ...")
 
 
 
@@ -193,7 +201,7 @@ def check_predicted_column_values(proj_profile, original_jpg_path, height):
     # showEdges(Quad1[0][1], Quad2[0][1], Quad3[0][1], Quad4[0][1], originalImg, height, "initial check")
     if initialCheck([Quad1[0][1], Quad2[0][1], Quad3[0][1], Quad4[0][1]]):
         return [Quad1[0][1], Quad2[0][1], Quad3[0][1], Quad4[0][1]]
-
+    print("Initial check ...")
     def potentialColumnsRemain():
         return iter1 < size1 or iter2 < size2 or iter3 < size3 or iter4 < size4
 

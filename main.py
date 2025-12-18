@@ -3,6 +3,7 @@ import csv
 import argparse
 import json
 from utils import process_image
+import traceback
         
 # from rowUtilsNew import findTextRows
 # from FinalizeColumns import check_predicted_column_values
@@ -11,7 +12,16 @@ from utils import process_image
 import numpy as np
 import sys
 
+def custom_excepthook(exc_type, exc_value, exc_traceback):
+    if exc_type == IndexError:
+        tb = traceback.extract_tb(exc_traceback)
+        # Get the last frame (where the error happened)
+        filename, lineno, func, text = tb[-1]
+        print(f"\n❌ IndexError in {filename}, line {lineno}: {text}")
+        print(f"  locals: {exc_traceback.tb_frame.f_locals}\n")
+    traceback.print_exception(exc_type, exc_value, exc_traceback)
 
+sys.excepthook = custom_excepthook
 
 
 def process_images_in_folder(folder_path):
@@ -94,6 +104,7 @@ def process_images_in_folder(folder_path):
             except Exception as e:
                 print(f"some problem in processing {filename}")
                 print(f"Error: {e}")
+                traceback.print_exc()
 
 
 def main():
