@@ -620,12 +620,14 @@ def findMatchingRowPatterns(colRows, courses_header_line, column_right_edge):
 
 
 
-
-    row1 = colRows[0]
-    row2 = colRows[1]
-    row3 = colRows[2]
-    row4 = colRows[3]
-    row5 = colRows[4]
+    if len(colRows) > 5:
+        row1 = colRows[0]
+        row2 = colRows[1]
+        row3 = colRows[2]
+        row4 = colRows[3]
+        row5 = colRows[4]
+    else:
+        return 0
     first_patterns = [row1, row2, row3, row4, row5]
     
     pat1MatchIndexes = find_initial_matching_pattern_indexes()

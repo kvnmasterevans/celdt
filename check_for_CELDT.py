@@ -10,7 +10,6 @@ def check_CELDT_status(rows):
     elpac_rows = []
     elpac_data_remaining = 0
     for row in rows:
-        print("check for CELDT")
         current_row = ""
         for text in row["text"]:
             current_row += " " +str(text)

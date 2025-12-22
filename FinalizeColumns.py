@@ -33,7 +33,7 @@ def initialCheck(potentialColumns):
         return False
     
 
-
+# check (*approximates) local maximum heuristic (3 away in each direction)
 def columnConfirm(index, proj_profile):
     def greater_than_neighboring_indexes():
         print("cycle through indexes")
@@ -63,7 +63,11 @@ def columnConfirm(index, proj_profile):
     return columnConfirmed
 
 
-# actually does nothing because its all commented out
+# actually does nothing because its all commented out ...
+# looks like the intention was to collect the average location and standard deviation
+# of each of the quadrants' possible lines, and then
+# check if values differed by more than 2 standard deviations from those averages
+# but I suppose wasn't useful because its all commented out
 def columnConfirm2(index1, index2, index3, index4):
     # def checkColumnDiffs():
     #     if diff1 < abs(avg1 - 2*stDev1) \
@@ -96,7 +100,8 @@ def columnConfirm2(index1, index2, index3, index4):
     return True
 
 
-# checks local maximum
+# checks local maximum 625 indices in each direction 
+# (if those indices exist)
 def columnConfirm3(index, proj_profile):
     def greater_than_neighboring_indexes():
         print("cycle through indexes")

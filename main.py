@@ -2,8 +2,9 @@ import os
 import csv
 import argparse
 import json
-from utils import process_image
+from utils import process_image, USE_NEW_COLUMN_ALGORITHM
 import traceback
+import time
         
 # from rowUtilsNew import findTextRows
 # from FinalizeColumns import check_predicted_column_values
@@ -26,6 +27,7 @@ sys.excepthook = custom_excepthook
 
 def process_images_in_folder(folder_path):
     print("processing all images in " + str(folder_path) + " folder")
+    print(f"Using new algorithm is set to {USE_NEW_COLUMN_ALGORITHM}")
     # scan in image
      # List all files in the folder
     
@@ -37,6 +39,7 @@ def process_images_in_folder(folder_path):
         text_file.write("English Learner Statuses: \n\n")
         for filename in os.listdir(folder_path):
             try:
+                start = time.perf_counter()
                 print()
                 print(filename)
                 # Construct the full file path
@@ -105,7 +108,9 @@ def process_images_in_folder(folder_path):
                 print(f"some problem in processing {filename}")
                 print(f"Error: {e}")
                 traceback.print_exc()
-
+            finally:
+                elapsed = time.perf_counter() - start
+                print(f"{filename} took {elapsed:.3f} seconds")
 
 def main():
     

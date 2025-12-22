@@ -10,8 +10,13 @@ import os
 from datetime import datetime
 from rowUtilsNew import check_header_rows_2_and_3, findTextRows, findMatchingRowPatterns
 from FinalizeColumns import    check_predicted_column_values
+from AltFinColsHolder import detect_four_columns
 from check_for_CELDT import check_CELDT_status
+from debug_saver import DebugSaver
 
+
+
+USE_NEW_COLUMN_ALGORITHM = True  # <-- flip this to swap between new and old column algorithms
 
 
 def log_message(filename, message):
@@ -126,24 +131,14 @@ def convert_OCR_page_result_to_json(result, fileName, page_number):
 # runs easy OCR on the provided image and returns the results
 def run_ocr(png_img_path):
     
-    # # Store jpg in temorary file for OCR read
-    # OUTPUT_IMAGE_PATH = "Temp/temp.png"
-    # pdf_document = fitz.open(jpg_img_path)
-    # pdf_page = pdf_document.load_page(0)
-    # pix = pdf_page.get_pixmap(matrix=fitz.Matrix(300/72, 300/72))  # Convert to image with 300 DPI
-    # pix.save(OUTPUT_IMAGE_PATH)
     print("starting ocr ...")
     reader = easyocr.Reader(['en'], gpu=False)
-    print("Reader set...")
-    # result = reader.readtext(png_img_path) # OUTPUT_IMAGE_PATH
 
     try:
         result = reader.readtext(png_img_path)
         print("OCR finished successfully")
     except Exception as e:
         print("OCR failed:", repr(e))
-
-    print("ocr finished")
 
     return result
 
@@ -171,6 +166,10 @@ def pdf_to_jpg_path(pdf_path):
 def standardize_png(file_path):
     print("Standardizing", file_path)
     image = Image.open(file_path)
+
+    # Convert everything to 8-bit RGB
+    if image.mode != "RGB":
+        image = image.convert("RGB")
     
     # Define the desired width
     desired_width = 2550
@@ -204,7 +203,6 @@ def standardize_image(file_path):
     if file_extension == ".png":
         return standardize_png(file_path)
     if file_extension == ".pdf":
-        print("... is a pdf")
         return pdf_to_png(file_path)
     elif file_extension in [".jpg", ".jpeg"]:
         return image_to_png(file_path)
@@ -475,13 +473,14 @@ def removeTop(textImage, OCRData, CourseStrings):
 
     stringDetected = False
     for textChunk in OCRData:
-        for course in CourseStrings:
-            if(course.lower() in textChunk["text"].lower()):
-                if stringDetected == False:
-                    stringDetected = True
-                    rowVal = textChunk["bounding_box"][0]["y"] # pixel location for bottom of "couse id" line
-                    # "erase" everything above classes table
-                    topless_img = cv2.rectangle(textImage, (int(0),int(0)), (int(wid), int(rowVal)), (255,255,255), cv2.FILLED)
+        if stringDetected == False:
+            for course in CourseStrings:
+                if(course.lower() in textChunk["text"].lower()):
+                    if stringDetected == False:
+                        stringDetected = True
+                        rowVal = textChunk["bounding_box"][0]["y"] # pixel location for bottom of "couse id" or "standardized tests" line
+                        # "erase" everything above classes table
+                        topless_img = cv2.rectangle(textImage, (int(0),int(0)), (int(wid), int(rowVal)), (255,255,255), cv2.FILLED)
 
     if stringDetected == False:
         return textImage, 0
@@ -611,6 +610,12 @@ def drawColumnEdges(columns, image, height, width, coursesHeaderRow, OCR_Data):
 
     col1Rows, col2Rows, col3Rows = findTextRows(OCR_Data, columns, coursesHeaderRow)
 
+    print(f" %%% col1 rows: {col1Rows}")
+    print(f" %%% col2 rows: {col2Rows}")
+    print(f" %%% col3 rows: {col3Rows}")
+
+
+
     row1Bot = findMatchingRowPatterns(col1Rows, coursesHeaderRow, edge2)
 
     row2Bot = findMatchingRowPatterns(col2Rows, coursesHeaderRow, edge3)
@@ -718,14 +723,14 @@ def extract_entry_and_exit_dates(OCR_results, rows):
     exit_date_text = ""
 
     for chunk in OCR_results:
-        if chunk["text"] == "Entrv Date" or chunk["text"] == "Entry Date" and entry_date_center == -1:
+        if (chunk["text"] == "Entrv Date" or chunk["text"] == "Entry Date") and entry_date_center == -1:
             entry_date_center = ( chunk["bounding_box"][0]["x"] + chunk["bounding_box"][1]["x"] ) / 2
             # entry_date_y = ( chunk["bounding_box"][0]["y"] + chunk["bounding_box"][2]["y"] ) / 2
             entry_date_y = chunk["bounding_box"][2]["y"]
             text_box_height = chunk["bounding_box"][2]["y"] - chunk["bounding_box"][0]["y"]
             entry_date_b_box = chunk["bounding_box"]
             print(f"entry date y = {entry_date_y}. entry date center = {entry_date_center}. text box height: {text_box_height}")
-        if chunk["text"] == "Exit Date" and exit_date_center == -1:
+        if (chunk["text"] == "Exit Date") and exit_date_center == -1:
             exit_date_center = ( chunk["bounding_box"][0]["x"] + chunk["bounding_box"][1]["x"] ) / 2
             # exit_date_y = ( chunk["bounding_box"][0]["y"] + chunk["bounding_box"][2]["y"] ) / 2
             exit_date_y = chunk["bounding_box"][2]["y"]
@@ -737,29 +742,30 @@ def extract_entry_and_exit_dates(OCR_results, rows):
 
         # if Entry Date text has been found then do logic on the text immediately below it
         # (within text_box_height range)
-        if entry_date_center != -1 and \
-            chunk["bounding_box"][0]["x"] < entry_date_b_box[1]["x"] and \
-            chunk["bounding_box"][1]["x"]  > entry_date_b_box[0]["x"] and \
-            chunk["bounding_box"][0]["y"] > entry_date_y and \
-            chunk["bounding_box"][0]["y"] < entry_date_y + ( text_box_height * 2):
+        if entry_date_b_box is not None:
+            if entry_date_center != -1 and \
+                chunk["bounding_box"][0]["x"] < entry_date_b_box[1]["x"] and \
+                chunk["bounding_box"][1]["x"]  > entry_date_b_box[0]["x"] and \
+                chunk["bounding_box"][0]["y"] > entry_date_y and \
+                chunk["bounding_box"][0]["y"] < entry_date_y + ( text_box_height * 2):
 
-            # entry_date_text = chunk["text"]
-            entry_date_text += chunk["text"]
-            print(f"this should be the entry date text: {entry_date_text}")
-            found_center = ( chunk["bounding_box"][0]["x"] + chunk["bounding_box"][1]["x"] ) / 2
-            print(f"... and this is  it's coordinate: {found_center}")
+                # entry_date_text = chunk["text"]
+                entry_date_text += chunk["text"]
+                print(f"this should be the entry date text: {entry_date_text}")
+                found_center = ( chunk["bounding_box"][0]["x"] + chunk["bounding_box"][1]["x"] ) / 2
+                print(f"... and this is  it's coordinate: {found_center}")
+        if exit_date_b_box is not None:
+            if exit_date_center != -1 and \
+                chunk["bounding_box"][0]["x"] < exit_date_b_box[1]["x"] and \
+                chunk["bounding_box"][1]["x"]  > exit_date_b_box[0]["x"] and \
+                chunk["bounding_box"][0]["y"] > exit_date_y and \
+                chunk["bounding_box"][0]["y"] < exit_date_y + ( text_box_height * 2):
 
-        if exit_date_center != -1 and \
-            chunk["bounding_box"][0]["x"] < entry_date_b_box[1]["x"] and \
-            chunk["bounding_box"][1]["x"]  > exit_date_b_box[0]["x"] and \
-            chunk["bounding_box"][0]["y"] > exit_date_y and \
-            chunk["bounding_box"][0]["y"] < exit_date_y + ( text_box_height * 2):
-
-            # exit_date_text = chunk["text"]
-            exit_date_text += chunk["text"]
-            print(f"this should be the exit date text: {exit_date_text}")
-            found_center = ( chunk["bounding_box"][0]["x"] + chunk["bounding_box"][1]["x"] ) / 2
-            print(f"... and this is  it's coordinate: {found_center}")
+                # exit_date_text = chunk["text"]
+                exit_date_text += chunk["text"]
+                print(f"this should be the exit date text: {exit_date_text}")
+                found_center = ( chunk["bounding_box"][0]["x"] + chunk["bounding_box"][1]["x"] ) / 2
+                print(f"... and this is  it's coordinate: {found_center}")
 
     return entry_date_text, exit_date_text
 
@@ -813,7 +819,7 @@ def process_image(filename, input_folder_path):
             # originalImg = openJpgImage(standardized_png_path1)
             textlessImg = removeText(png_path, OCR_Data)
             print("text removed...")
-            CutoffStrings = ["standardized", "tests"]
+            CutoffStrings = ["standardized", "tests", "crs id", "course"]
             toplessImg, coursesHeaderRow = removeTop(textlessImg, OCR_Data, CutoffStrings)
             print("Top removed...")
 
@@ -827,9 +833,34 @@ def process_image(filename, input_folder_path):
             print("projection profile created...")
 
 
-            
-            # columns = detect_four_columns( blackPixProjProfile)       # blackPixProjProfile, png_path, height) # stand png path var????
-            columns = check_predicted_column_values(blackPixProjProfile, png_path, height)
+
+
+
+            def old_algorithm(blackPixProjProfile, png_path, height):
+                return check_predicted_column_values(blackPixProjProfile, png_path, height)
+            def new_algorithm(blackPixProjProfile):
+                return detect_four_columns( blackPixProjProfile)
+            '''
+                SWITCH BETWEEN THE OLD AND NEW COLUMN-FINDING ALGORITHMS
+                BY SETTING THE VARIABLE AT TOP OF SCRIPT
+            '''
+            if USE_NEW_COLUMN_ALGORITHM:
+                columns = new_algorithm(blackPixProjProfile)
+            else:
+                columns = old_algorithm(blackPixProjProfile, png_path, height)
+
+
+
+
+
+
+            print(f" ~!~ Columns found: {columns}")
+
+            # # debug draws column edges images and saves them
+            # drawn_columns = drawColumnEdges(columns, textlessImg, height, width, coursesHeaderRow, OCR_Data)
+            # dbg = DebugSaver("debug_columns")
+            # dbg.save(drawn_columns, filename)
+
             
             print("column vals checked...")
             col1Rows, col2Rows, col3Rows = findTextRows(OCR_Data, columns, coursesHeaderRow)
@@ -937,9 +968,9 @@ def process_image(filename, input_folder_path):
     exit_date = extract_8_digit_dates_from_strings(exit_date_string)
 
 
-    print("still going 1")
-    # remove_temporary_files()
-    print("still going 1.1")
+    print("about to remove temp files")
+    remove_temporary_files()
+    print("done removing temp files")
     return celdt_detected, celdt_rows, elpac_detected, elpac_rows, \
         transfer_worksheet_found, entry_date, exit_date, celdt_date, elpac_date    # dates, scores, score_types
 
