@@ -7,6 +7,8 @@ import traceback
 import time
 import numpy as np
 import sys
+from datetime import datetime
+
 
 def custom_excepthook(exc_type, exc_value, exc_traceback):
     if exc_type == IndexError:
@@ -35,6 +37,7 @@ def process_images_in_folder(folder_path):
         for filename in os.listdir(folder_path):
             try:
                 start = time.perf_counter()
+                start_wall_time = datetime.now()
                 print()
                 print(filename)
                 # Construct the full file path
@@ -104,8 +107,14 @@ def process_images_in_folder(folder_path):
                 print(f"Error: {e}")
                 traceback.print_exc()
             finally:
+                end_wall_time = datetime.now()
                 elapsed = time.perf_counter() - start
-                text_file.write(f"{filename} took {elapsed:.3f} seconds to complete")
+                text_file.write(
+                    f"\n{filename}\n"
+                    f"\tStart time: {start_wall_time}\n"
+                    f"\tEnd time:   {end_wall_time}\n"
+                    f"\tTotal time: {elapsed:.3f} seconds\n"
+                )
 
 def main():
     
