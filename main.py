@@ -5,11 +5,6 @@ import json
 from utils import process_image, USE_NEW_COLUMN_ALGORITHM
 import traceback
 import time
-        
-# from rowUtilsNew import findTextRows
-# from FinalizeColumns import check_predicted_column_values
-# from check_for_CELDT import check_CELDT_status
-# import cv2
 import numpy as np
 import sys
 
@@ -110,7 +105,7 @@ def process_images_in_folder(folder_path):
                 traceback.print_exc()
             finally:
                 elapsed = time.perf_counter() - start
-                print(f"{filename} took {elapsed:.3f} seconds")
+                text_file.write(f"{filename} took {elapsed:.3f} seconds to complete")
 
 def main():
     

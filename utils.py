@@ -12,7 +12,6 @@ from rowUtilsNew import check_header_rows_2_and_3, findTextRows, findMatchingRow
 from FinalizeColumns import    check_predicted_column_values
 from AltFinColsHolder import detect_four_columns
 from check_for_CELDT import check_CELDT_status
-from debug_saver import DebugSaver
 
 
 
@@ -850,16 +849,7 @@ def process_image(filename, input_folder_path):
                 columns = old_algorithm(blackPixProjProfile, png_path, height)
 
 
-
-
-
-
             print(f" ~!~ Columns found: {columns}")
-
-            # # debug draws column edges images and saves them
-            # drawn_columns = drawColumnEdges(columns, textlessImg, height, width, coursesHeaderRow, OCR_Data)
-            # dbg = DebugSaver("debug_columns")
-            # dbg.save(drawn_columns, filename)
 
             
             print("column vals checked...")
