@@ -131,7 +131,7 @@ def convert_OCR_page_result_to_json(result, fileName, page_number):
 def run_ocr(png_img_path):
     
     print("starting ocr ...")
-    reader = easyocr.Reader(['en'], gpu=False)
+    reader = easyocr.Reader(['en'], gpu=True)
 
     try:
         result = reader.readtext(png_img_path)
