@@ -2,7 +2,7 @@ import os
 import csv
 import argparse
 import json
-from utils import process_image, USE_NEW_COLUMN_ALGORITHM
+from utils import process_image, USE_NEW_COLUMN_ALGORITHM, init_ocr
 import traceback
 import time
 import numpy as np
@@ -27,6 +27,8 @@ def process_images_in_folder(folder_path):
     print(f"Using new algorithm is set to {USE_NEW_COLUMN_ALGORITHM}")
     # scan in image
      # List all files in the folder
+
+    init_ocr()
     
     output_text_file_path = "text_output.txt"
     output_csv_file_path = "csv_output.csv"

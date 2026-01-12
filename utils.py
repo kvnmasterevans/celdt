@@ -7,15 +7,22 @@ import numpy as np
 import easyocr
 import json
 import os
-from datetime import datetime
-from rowUtilsNew import check_header_rows_2_and_3, findTextRows, findMatchingRowPatterns
-from FinalizeColumns import    check_predicted_column_values
-from AltFinColsHolder import detect_four_columns
-from check_for_CELDT import check_CELDT_status
+from Row_Utilities import check_header_rows_2_and_3, findTextRows, findMatchingRowPatterns
+from Old_Column_Algorithm import    check_predicted_column_values
+from New_Column_Algorithm import detect_four_columns
+from check_for_CELDT_and_ELPAC import check_CELDT_ELPAC_status
 
 
 
 USE_NEW_COLUMN_ALGORITHM = True  # <-- flip this to swap between new and old column algorithms
+
+
+OCR_READER = None
+
+def init_ocr():
+    global OCR_READER
+    if OCR_READER is None:
+        OCR_READER = easyocr.Reader(['en'], gpu=True)
 
 
 def log_message(filename, message):
@@ -35,8 +42,6 @@ def get_unique_filename(directory, base_filename, extension):
     Generates a unique file name by appending the current date and time,
     and if necessary, a number to avoid duplicates.
     """
-    # Get the current date and time
-    # timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     filename = f"{base_filename}{extension}"
     full_path = os.path.join(directory, filename)
     
@@ -101,10 +106,6 @@ def convert_OCR_results_to_json(result1, result2, fileName):
     return output_file_path1, output_file_path2
 
 
-# // NEW LOGIC BEING IMPLEMENTED
-# //
-# // UNDER CONSTRUCTION
-# //
 def convert_OCR_page_result_to_json(result, fileName, page_number):
     output_data = []
     for detection in result:
@@ -131,10 +132,9 @@ def convert_OCR_page_result_to_json(result, fileName, page_number):
 def run_ocr(png_img_path):
     
     print("starting ocr ...")
-    reader = easyocr.Reader(['en'], gpu=True)
 
     try:
-        result = reader.readtext(png_img_path)
+        result = OCR_READER.readtext(png_img_path)
         print("OCR finished successfully")
     except Exception as e:
         print("OCR failed:", repr(e))
@@ -149,13 +149,14 @@ def pdf_to_jpg_path(pdf_path):
 
     SCALING_FACTOR = 300 / 72
     
-    height = pix.height
-    width = pix.width
+    
     OUTPUT_IMAGE_PATH = "Temp/temp.jpg"
     os.makedirs("Temp", exist_ok=True)
     pdf_document = fitz.open(pdf_path)
     pdf_page = pdf_document.load_page(0)  # Load the first page (index 0) 
     pix = pdf_page.get_pixmap(matrix=fitz.Matrix(SCALING_FACTOR, SCALING_FACTOR))  # Convert to image with 300 DPI
+    height = pix.height
+    width = pix.width
     pix.save(OUTPUT_IMAGE_PATH)
 
     
@@ -219,11 +220,9 @@ def pdf_to_png(pdf_path):
 
     pdf_document = fitz.open(pdf_path)
     pdf_page1 = pdf_document.load_page(0)  # Load the first page
-    print("page 1 loaded....")
+    print("page 1 loaded...")
     pix1 = pdf_page1.get_pixmap(matrix=fitz.Matrix(SCALING_FACTOR, SCALING_FACTOR))
-    print("pixmap")
     pix1.save(OUTPUT_IMAGE_PATH1)
-    print("page 1...")
 
 
     if len(pdf_document) > 1:
@@ -253,66 +252,9 @@ def pdf_to_png(pdf_path):
     else:
         print("OpenCV detected", img_cv.shape[2], "channels")
     
-    print("end pdf to png...")
     print("PDF image size:", pix1.width, "x", pix1.height)
     return OUTPUT_IMAGE_PATH1, width1, height1, OUTPUT_IMAGE_PATH2, width2, height2
 
-
-# import math
-# def pdf_to_png(pdf_path):
-#     print("pdf to png...")
-#     SCALING_FACTOR = 300 / 72  # Standard DPI
-#     MAX_RAM_BYTES = 1_000_000_000  # ~1 GB safe for OCR
-
-#     OUTPUT_IMAGE_PATH1 = "Temp/temp1.png"
-#     OUTPUT_IMAGE_PATH2 = "Temp/temp2.png"
-
-#     pdf_document = fitz.open(pdf_path)
-#     pdf_page1 = pdf_document.load_page(0)
-#     print("page 1 loaded....")
-#     pix1 = pdf_page1.get_pixmap(matrix=fitz.Matrix(SCALING_FACTOR, SCALING_FACTOR))
-#     pix1.save(OUTPUT_IMAGE_PATH1)
-
-#     # --- Check memory usage and downscale if needed ---
-#     im1 = Image.open(OUTPUT_IMAGE_PATH1)
-#     width1, height1 = im1.size
-#     channels1 = len(im1.getbands())  # usually 3
-#     mem_estimate = width1 * height1 * channels1 * 4 * 12  # rough EasyOCR factor
-#     if mem_estimate > MAX_RAM_BYTES:
-#         scale = math.sqrt(MAX_RAM_BYTES / mem_estimate)
-#         new_size = (int(width1 * scale), int(height1 * scale))
-#         im1 = im1.resize(new_size)
-#         im1.save(OUTPUT_IMAGE_PATH1)
-#         width1, height1 = new_size
-#         print(f"Downscaled first page to {new_size} to fit memory")
-
-#     # --- Repeat for second page if it exists ---
-#     if len(pdf_document) > 1:
-#         pdf_page2 = pdf_document.load_page(1)
-#         pix2 = pdf_page2.get_pixmap(matrix=fitz.Matrix(SCALING_FACTOR, SCALING_FACTOR))
-#         OUTPUT_IMAGE_PATH2 = "Temp/temp2.png"
-#         pix2.save(OUTPUT_IMAGE_PATH2)
-
-#         im2 = Image.open(OUTPUT_IMAGE_PATH2)
-#         width2, height2 = im2.size
-#         channels2 = len(im2.getbands())
-#         mem_estimate2 = width2 * height2 * channels2 * 4 * 12
-#         if mem_estimate2 > MAX_RAM_BYTES:
-#             scale = math.sqrt(MAX_RAM_BYTES / mem_estimate2)
-#             new_size2 = (int(width2 * scale), int(height2 * scale))
-#             im2 = im2.resize(new_size2)
-#             im2.save(OUTPUT_IMAGE_PATH2)
-#             width2, height2 = new_size2
-#             print(f"Downscaled second page to {new_size2} to fit memory")
-#     else:
-#         OUTPUT_IMAGE_PATH2 = None
-#         width2 = height2 = None
-
-#     print("end pdf to png...")
-#     return OUTPUT_IMAGE_PATH1, width1, height1, OUTPUT_IMAGE_PATH2, width2, height2
-
-# def single_pdf_to_png():
-#     print("new logic?")
 
 
 def jpg_to_png(image_path):
@@ -401,38 +343,6 @@ def image_to_png(image_path):
 
 
 
-
-
-
-
-
-
-
-
-# def check_for_transfer_worksheet(OCRData, threshold=0.9):
-#     print("~~~ 1")
-#     target = "transfer admission worksheet"
-
-#     for i in range(len(OCRData)):
-#         combined_text = ""
-#         for j in range(i, min(i + 3, len(OCRData))):
-#             chunk = OCRData[j]
-#             if chunk and chunk["text"]:
-#                 combined_text += " " + chunk["text"].lower()
-
-#         # Clean up extra spaces
-#         combined_text = combined_text.strip()
-
-#         # Get similarity ratio
-#         similarity = difflib.SequenceMatcher(None, combined_text, target).ratio()
-
-#         if similarity >= threshold:
-#             print(f"Match found (similarity={similarity:.2f}): {combined_text}")
-#             return True
-
-#     return False
-
-
 def check_for_transfer_worksheet(OCRData):
     target = "transfer admission worksheet"
     for chunk in OCRData:
@@ -441,10 +351,6 @@ def check_for_transfer_worksheet(OCRData):
                 print(f"Found in single chunk: {chunk['text']}")
                 return True
     return False
-
-
-
-
 
 
 
@@ -598,7 +504,7 @@ def createBlackPixelProjectionProfile(proj_profile):
     return blackPixels_proj_profile
 
 
-
+# Debug Utility function - draws the detected edges of columns
 def drawColumnEdges(columns, image, height, width, coursesHeaderRow, OCR_Data):
 
 
@@ -655,53 +561,6 @@ def drawColumnEdges(columns, image, height, width, coursesHeaderRow, OCR_Data):
 
 
     return imageCopy
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -798,11 +657,8 @@ def process_image(filename, input_folder_path):
     def extract_data(png_path, height, width, page_number):
         # do ocr read if necessary
             result = run_ocr(png_path)
-            print("Made it here ...")
             OCR_Data_Path = convert_OCR_page_result_to_json(result, filename, page_number)
-            print("converted to JSON")
 
-            #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
             with open(OCR_Data_Path, 'r') as json_file:
                 OCR_Data = json.load(json_file)
@@ -883,7 +739,7 @@ def process_image(filename, input_folder_path):
         
         # STANDARD LOGIC
         rows, OCR_Data_Path, transfer_worksheet_found, entry_date, exit_date = extract_data(standardized_png_path1, height1, width1, 1)
-        celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows = check_CELDT_status(rows)
+        celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows = check_CELDT_ELPAC_status(rows)
         
 
         OCR_Data_Path2 = None
@@ -893,7 +749,7 @@ def process_image(filename, input_folder_path):
             # PAGE 2 ONLY LOGIC 
             rows_page_2, OCR_Data_Path2, _, _, _ = extract_data(standardized_png_path2, height1, width1, 2)
 
-            celdt_detected_page_2, confirmed_celdt_rows_page_2, elpac_detected_page_2, elpac_rows_page_2 = check_CELDT_status(rows_page_2)
+            celdt_detected_page_2, confirmed_celdt_rows_page_2, elpac_detected_page_2, elpac_rows_page_2 = check_CELDT_ELPAC_status(rows_page_2)
             print(f"celdt detection within pdf page 2 = {celdt_detected_page_2}")
             celdt_detected = celdt_detected or celdt_detected_page_2
             elpac_detected = elpac_detected or elpac_detected_page_2
@@ -914,7 +770,7 @@ def process_image(filename, input_folder_path):
         standardized_png, width, height = standardize_png(file_path)
         
         rows, OCR_Data_Path, transfer_worksheet_found, entry_date, exit_date = extract_data(standardized_png, height, width, 1)
-        celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows = check_CELDT_status(rows)
+        celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows = check_CELDT_ELPAC_status(rows)
 
         return celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows, OCR_Data_Path, transfer_worksheet_found, entry_date, exit_date
         
@@ -923,7 +779,7 @@ def process_image(filename, input_folder_path):
         standardized_png, width, height = jpg_to_png(file_path)
         
         rows, OCR_Data_Path, transfer_worksheet_found, entry_date, exit_date = extract_data(standardized_png, height, width, 1)
-        celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows = check_CELDT_status(rows)
+        celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows = check_CELDT_ELPAC_status(rows)
 
         return celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows, OCR_Data_Path, transfer_worksheet_found, entry_date, exit_date
 

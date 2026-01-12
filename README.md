@@ -50,7 +50,57 @@ If you want to preserve results from previous runs, move or rename those files b
 
 ---
 
-## 🏗️ Basic Architecture (Version 0.03)
+### 🧩 Version 0.04 — *December 18, 2025*
+**Repository:** `celdt`  
+- Supports **PDF, PNG, and JPG**  
+- Extracts detailed CELDT/ELPAC date and score information as well as entry / exit dates  
+- Fixed a bug in one of the loops in FinalizeColumns.py that would access an out-of-range index
+
+---
+
+### 🧩 Version 0.05 — *December 22, 2025*
+**Repository:** `celdt`  
+- Supports **PDF, PNG, and JPG**  
+- Extracts detailed CELDT/ELPAC date and score information as well as entry / exit dates  
+- Fixed a variety of bugs including accessing NONE data type, index out-of-range errors, corrected header detection method and updated .png standardization method
+- Got the new Algorithm Detection method to work by increasing the minimum pixel count threshold to 10,000
+- Has simple file-processing time tracker
+
+---
+
+### 🧩 Version 0.05.1 — *December 23, 2025*
+**Repository:** `celdt`  
+- Supports **PDF, PNG, and JPG**  
+- Extracts detailed CELDT/ELPAC date and score information as well as entry / exit dates  
+- Improved per-file time tracking output structure
+
+---
+
+### 🧩 Version 0.05.2 — *December 23, 2025*
+**Repository:** `celdt`  
+- Supports **PDF, PNG, and JPG**  
+- Extracts detailed CELDT/ELPAC date and score information as well as entry / exit dates  
+- Can now use either new or old column algorithm by setting bool at top of utils.py, USE_NEW_COLUMN_ALGORITHM
+- **Known Bug:**  
+  - Running program the first time CAN cause a whole slew of errors that disapper upon the second run. (Presumably this has to do with initializing EasyOCR)
+---
+
+### 🧩 Version 0.05.3 — *January 11, 2026*
+**Repository:** `celdt`  
+- Supports **PDF, PNG, and JPG**  
+- Extracts detailed CELDT/ELPAC date and score information as well as entry / exit dates  
+- **Renamed: **
+        check_for_CELDT.py => check_for_CELDT_and_ELPAC.py
+        rowUtilsNew.py => Row_Utilities.py
+        AltFinColsHolder.py => New_Column_Algorithm.py
+        FinalizeColumns.py => Old_Column_Algorithm.py
+- cleaned up the code removing many print lines and removing unused commented-out code
+- removed the datetime import from the utils.py file
+- Moved the EasyOCR initialization line to outside of the loop in utils.py to stop redundant calls and also to hopefully fix the presumed initialization bug
+
+---
+
+## 🏗️ Basic Architecture (Version 0.05.3)
 
 The project consists of **five main functional files:**
 
@@ -60,12 +110,14 @@ The project consists of **five main functional files:**
 - Handles command-line input  
 - Iterates through target folder files  
 - Calls `process_image()` from `utils.py`
+- tracks time stamps for each file
 
 ---
 
 ### `utils.py`
 - Contains the main `process_image()` method  
-- Imports utilities from `rowUtilsNew.py`, `FinalizeColumns.py`, and `check_for_CELDT.py`  
+- Imports utilities from `Row_Utilities.py`, `Old_Column_Algorithm.py`, and `check_for_CELDT_and_ELPAC.py`  
+      (previously named `rowUtilsNew.py`, `FinalizeColumns.py`, and `check_for_CELDT.py`)
 - Determines file type and routes it to `process_png()`, `process_jpg()`, or `process_pdf()`  
 
 **Process Flow:**  
@@ -78,7 +130,7 @@ The project consists of **five main functional files:**
 - Detects transfer worksheets using `check_for_transfer_worksheet()`  
 - Cleans the image (removes text/top/bottom regions) using `removeText()`, `removeTop()`, `remove_img_bottom()`  
 - Computes vertical black pixel projection (`blackPixProjProfile`)  
-- Determines column positions using `check_predicted_column_values()`  
+- Determines column positions using `check_predicted_column_values()` from `Old_Column_Algorithm.py` or `detect_four_columns` from `New_Column_Algorithm.py` (Chooses which method to use based on `USE_NEW_COLUMN_ALGORITHM` bool)
 - Finds text rows via `findTextRows()`  
 - Extracts entry and exit dates with `extract_entry_and_exit_dates()`  
 
@@ -87,7 +139,7 @@ The project consists of **five main functional files:**
 
 ---
 
-### `rowUtilsNew.py`
+### `Row_Utilities.py` formerly `rowUtilsNew.py`
 - Core module for row and column analysis  
 - Exports:
   - `check_header_rows_2_and_3()` *(legacy, can remove)*
@@ -98,23 +150,26 @@ The project consists of **five main functional files:**
 
 ---
 
-### `FinalizeColumns.py`
+### `Old_Column_Algorithm.py` formerly `FinalizeColumns.py`
 - Contains `check_predicted_column_values()`  
 - Uses black pixel projection profiles to identify and verify column boundaries
 
+### `New_Column_Algorithm.py` formerly `AltFinColsHolder.py`
+- Contains `check_predicted_column_values()`  
+- Uses black pixel projection profiles to identify and verify column boundaries
+- More efficient AND better written than the `Old_Column_Algorithm.py` counterpart
+
 ---
 
-### `check_for_CELDT.py`
-- Contains `check_CELDT_status()`  
+### `check_for_CELDT_and_ELPAC.py` formerly `check_for_CELDT.py`
+- Contains `check_CELDT_ELPAC_status()`  
 - Extracts CELDT and ELPAC data from text rows
 
 ---
 
 ## 🐞 Known Issues
-- Some transcripts cause a `list index out of range` error during data extraction 
-  - This error occurs in the FinalizeColumns.py in the ColumnConfirm3 method
-  - where the index is greater than the length of proj_profile via proj_profile[index]
+- No currently known issues
 
 ---
 
-*Last Updated: October 14, 2025 (Version 0.03)*
+*Last Updated: January 11, 2025 (Version 0.05.3)*
