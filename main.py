@@ -32,9 +32,14 @@ def process_images_in_folder(folder_path):
     
     output_text_file_path = "text_output.txt"
     output_csv_file_path = "csv_output.csv"
+    output_tsv_file_path = "tsv_output.tsv"
 
-    with open(output_text_file_path, "w") as text_file, open(output_csv_file_path, mode='w', newline='') as csv_file:
+    with open(output_text_file_path, "w") as text_file, \
+        open(output_csv_file_path, mode='w', newline='') as csv_file,\
+        open(output_tsv_file_path, mode='w', newline='') as tsv_file:
+
         csv_writer = csv.writer(csv_file)
+        tsv_writer = csv.writer(tsv_file, delimiter="\t")
         text_file.write("English Learner Statuses: \n\n")
         for filename in os.listdir(folder_path):
             try:
@@ -57,6 +62,7 @@ def process_images_in_folder(folder_path):
                 print("still going 3")
 
                 csv_writer.writerow([filename, f" CELDT or ELPAC Detected = {(celdt_detected or elpac_detected)}"])
+                tsv_writer.writerow([filename, f" CELDT or ELPAC Detected = {(celdt_detected or elpac_detected)}"])
                 if elpac_detected or celdt_detected:
                     text_file.write("\t details:\n")
 
@@ -66,6 +72,8 @@ def process_images_in_folder(folder_path):
                     for row in elpac_rows:
                         text_file.write(f"\t\t{row}\n")
                         csv_writer.writerow([filename, row])
+                        tsv_writer.writerow([filename, row])
+                        
                 print(f"CELDT Detected = {celdt_detected}")
                 if celdt_detected == True: # and dates and scores and score_types:
                     print("celdt_detected")
@@ -73,18 +81,24 @@ def process_images_in_folder(folder_path):
                     for row in confirmed_celdt_rows:
                         text_file.write(f"\t\t{row}\n")
                         csv_writer.writerow([filename, row])
+                        tsv_writer.writerow([filename, row])
 
 
                 if entry_date != None:
                     print("ENTRY DATE FOUND!!!!   " + entry_date)
                     csv_writer.writerow([filename, f" entry date: {entry_date}"])
+                    tsv_writer.writerow([filename, f" entry date: {entry_date}"])
+
                 else:
                     csv_writer.writerow([filename, " entry date not found"])
+                    tsv_writer.writerow([filename, " entry date not found"])
                 if exit_date != None:
                     print("EXIT DATE FOUND!!!!   " + exit_date)
                     csv_writer.writerow([filename, f" exit date: {exit_date}"])
+                    tsv_writer.writerow([filename, f" exit date: {exit_date}"])
                 else:
                     csv_writer.writerow([filename, " exit date not found"])
+                    tsv_writer.writerow([filename, " exit date not found"])
                 
                 
                     print("still going 7")
@@ -93,6 +107,7 @@ def process_images_in_folder(folder_path):
                 
                 # Flush to ensure data is written to disk
                 csv_file.flush()
+                tsv_file.flush()
                 print(f"finished with {filename}")
                 print("still going 9")
                 

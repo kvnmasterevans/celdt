@@ -85,7 +85,16 @@ If you want to preserve results from previous runs, move or rename those files b
   - Running program the first time CAN cause a whole slew of errors that disapper upon the second run. (Presumably this has to do with initializing EasyOCR)
 ---
 
-### 🧩 Version 0.05.3 — *January 11, 2026*
+### 🧩 Version 0.05.3 — *December 23, 2025*
+**Repository:** `celdt`  
+- Supports **PDF, PNG, and JPG**  
+- Extracts detailed CELDT/ELPAC date and score information as well as entry / exit dates  
+- More detailed time output
+- **Known Bug:**  
+  - Running program the first time CAN cause a whole slew of errors that disapper upon the second run. (Presumably this has to do with initializing EasyOCR)
+---
+
+### 🧩 Version 0.05.4 — *January 11, 2026*
 **Repository:** `celdt`  
 - Supports **PDF, PNG, and JPG**  
 - Extracts detailed CELDT/ELPAC date and score information as well as entry / exit dates  
@@ -97,6 +106,14 @@ If you want to preserve results from previous runs, move or rename those files b
 - cleaned up the code removing many print lines and removing unused commented-out code
 - removed the datetime import from the utils.py file
 - Moved the EasyOCR initialization line to outside of the loop in utils.py to stop redundant calls and also to hopefully fix the presumed initialization bug
+
+---
+
+### 🧩 Version 0.05.5 — *January 13, 2026*
+**Repository:** `celdt`  
+- Supports **PDF, PNG, and JPG**  
+- Extracts detailed CELDT/ELPAC date and score information as well as entry / exit dates  
+- Now also produces a tsv file, tsv_output.txt (has identical info to the csv file)
 
 ---
 
