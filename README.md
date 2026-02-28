@@ -115,6 +115,11 @@ If you want to preserve results from previous runs, move or rename those files b
 - Extracts detailed CELDT/ELPAC date and score information as well as entry / exit dates  
 - Now also produces a tsv file, tsv_output.txt (has identical info to the csv file)
 
+### 🧩 Version 0.06.0 — *February 27, 2026*
+**Repository:** `celdt`  
+- Supports **PDF, PNG, and JPG**  
+- Now creates a course catalog from transcripts
+
 ---
 
 ## 🏗️ Basic Architecture (Version 0.05.3)

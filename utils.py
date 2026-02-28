@@ -11,6 +11,7 @@ from Row_Utilities import check_header_rows_2_and_3, findTextRows, findMatchingR
 from Old_Column_Algorithm import    check_predicted_column_values
 from New_Column_Algorithm import detect_four_columns
 from check_for_CELDT_and_ELPAC import check_CELDT_ELPAC_status
+from extract_course_catalog import extract_course_catalog, load_catalog, save_catalog
 
 
 
@@ -18,6 +19,8 @@ USE_NEW_COLUMN_ALGORITHM = True  # <-- flip this to swap between new and old col
 
 
 OCR_READER = None
+
+catalog = load_catalog()
 
 def init_ocr():
     global OCR_READER
@@ -655,6 +658,7 @@ def process_image(filename, input_folder_path):
                 os.remove(OCR_Data_Path2)
 
     def extract_data(png_path, height, width, page_number):
+            global catalog # use the global catalog variable
         # do ocr read if necessary
             result = run_ocr(png_path)
             OCR_Data_Path = convert_OCR_page_result_to_json(result, filename, page_number)
@@ -728,7 +732,7 @@ def process_image(filename, input_folder_path):
 
 
             entry_date, exit_date = extract_entry_and_exit_dates(OCR_Data, rows)
-            
+            catalog = extract_course_catalog(rows, catalog)
             
 
             return rows, OCR_Data_Path, transfer_worksheet_found, entry_date, exit_date
@@ -817,6 +821,7 @@ def process_image(filename, input_folder_path):
     print("about to remove temp files")
     remove_temporary_files()
     print("done removing temp files")
+    save_catalog(catalog)
     return celdt_detected, celdt_rows, elpac_detected, elpac_rows, \
         transfer_worksheet_found, entry_date, exit_date, celdt_date, elpac_date    # dates, scores, score_types
 
