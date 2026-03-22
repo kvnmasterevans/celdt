@@ -12,6 +12,7 @@ from Old_Column_Algorithm import    check_predicted_column_values
 from New_Column_Algorithm import detect_four_columns
 from check_for_CELDT_and_ELPAC import check_CELDT_ELPAC_status
 from extract_course_catalog import extract_course_catalog, load_catalog, save_catalog
+from debug_save_ocr import save_debug_json
 
 
 
@@ -628,7 +629,40 @@ def extract_entry_and_exit_dates(OCR_results, rows):
                 found_center = ( chunk["bounding_box"][0]["x"] + chunk["bounding_box"][1]["x"] ) / 2
                 print(f"... and this is  it's coordinate: {found_center}")
 
+
+        # if not found then check by location
+        if len(entry_date_text) == 0 or len(exit_date_text) == 0:
+            entry, exit = extract_entry_and_exit_dates_by_location(OCR_results)
+            if len(entry_date_text) == 0:
+                entry_date_text = entry
+            if len(exit_date_text) == 0:
+                exit_date_text = exit
+
     return entry_date_text, exit_date_text
+
+
+def extract_entry_and_exit_dates_by_location(OCR_results):
+    entry_date_text = None
+    exit_date_text = None
+
+    for chunk in OCR_results:
+        if (chunk["bounding_box"][0]["x"] < 1450) \
+            and (chunk["bounding_box"][1]["x"] > 1450) \
+            and (chunk["bounding_box"][0]["y"] < 1000): # and location
+            if extract_8_digit_dates_from_strings(chunk["text"]):
+                if entry_date_text == None:
+                    entry_date_text = extract_8_digit_dates_from_strings(chunk["text"])
+                    continue
+                if exit_date_text == None:
+                    exit_date_text = extract_8_digit_dates_from_strings(chunk["text"])
+                    break
+
+    if entry_date_text == None:
+        entry_date_text = ""
+    if exit_date_text == None:
+        exit_date_text = "" 
+    return entry_date_text, exit_date_text
+
 
 
 
@@ -666,6 +700,8 @@ def process_image(filename, input_folder_path):
 
             with open(OCR_Data_Path, 'r') as json_file:
                 OCR_Data = json.load(json_file)
+
+            # save_debug_json(OCR_Data, filename, page_number)
 
 
             # # # check for transfer worksheet
