@@ -7,10 +7,12 @@ import numpy as np
 import easyocr
 import json
 import os
+import hashlib
+import pickle
 from Row_Utilities import check_header_rows_2_and_3, findTextRows, findMatchingRowPatterns
 from Old_Column_Algorithm import    check_predicted_column_values
 from New_Column_Algorithm import detect_four_columns
-from check_for_CELDT_and_ELPAC import check_CELDT_ELPAC_status
+from check_for_CELDT_and_ELPAC import check_CELDT_ELPAC_status, Generic_CELDT_ELPAC_String_Check
 from extract_course_catalog import extract_course_catalog, load_catalog, save_catalog
 from debug_save_ocr import save_debug_json
 
@@ -57,6 +59,29 @@ def get_unique_filename(directory, base_filename, extension):
         counter += 1
     
     return full_path
+
+CACHE_DIR = "OCR_Cache"
+os.makedirs(CACHE_DIR, exist_ok=True)
+
+def file_hash(path):
+    hasher = hashlib.sha256()
+    with open(path, "rb") as f:
+        while chunk := f.read(8192):
+            hasher.update(chunk)
+    return hasher.hexdigest()
+
+def save_cache(file_key, data_tuple):
+    cache_file = os.path.join(CACHE_DIR, f"{file_key}.pkl")
+    with open(cache_file, "wb") as f:
+        pickle.dump(data_tuple, f)
+
+def load_cache(file_key):
+    cache_file = os.path.join(CACHE_DIR, f"{file_key}.pkl")
+    if os.path.exists(cache_file):
+        with open(cache_file, "rb") as f:
+            return pickle.load(f)
+    return None
+
 
 def openJpgImage(jpg_path):
     image = cv2.imread(jpg_path, cv2.IMREAD_GRAYSCALE)
@@ -691,8 +716,21 @@ def process_image(filename, input_folder_path):
             if os.path.exists(OCR_Data_Path2):
                 os.remove(OCR_Data_Path2)
 
+    global catalog # use the global catalog variable
+    file_path = os.path.join(input_folder_path, filename)
+    file_extension = os.path.splitext(file_path)[1].lower()
+
+    key = file_hash(file_path)
+
+    cached_result = load_cache(key)
+    if cached_result:
+        print("Using cached OCR result.")
+        catalog = extract_course_catalog(cached_result["rows"], catalog)
+        save_catalog(catalog)
+        return cached_result["data"]
+
     def extract_data(png_path, height, width, page_number):
-            global catalog # use the global catalog variable
+            
         # do ocr read if necessary
             result = run_ocr(png_path)
             OCR_Data_Path = convert_OCR_page_result_to_json(result, filename, page_number)
@@ -700,6 +738,9 @@ def process_image(filename, input_folder_path):
 
             with open(OCR_Data_Path, 'r') as json_file:
                 OCR_Data = json.load(json_file)
+            
+            # check generically for any celdt or elpac strings
+            celdt_string, elpac_string = Generic_CELDT_ELPAC_String_Check(OCR_Data)
 
             # save_debug_json(OCR_Data, filename, page_number)
 
@@ -768,26 +809,60 @@ def process_image(filename, input_folder_path):
 
 
             entry_date, exit_date = extract_entry_and_exit_dates(OCR_Data, rows)
+            global catalog
             catalog = extract_course_catalog(rows, catalog)
             
 
-            return rows, OCR_Data_Path, transfer_worksheet_found, entry_date, exit_date
+            return rows, OCR_Data_Path, transfer_worksheet_found, entry_date, exit_date, celdt_string, elpac_string
 
+    # def process_pdf():
+    #     # standardize image format
+    #     standardized_png_path1, width1, height1, standardized_png_path2, width2, height2 = pdf_to_png(file_path)
+        
+    #     # STANDARD LOGIC
+    #     rows, OCR_Data_Path, transfer_worksheet_found, entry_date, exit_date, celdt_string, elpac_string = extract_data(standardized_png_path1, height1, width1, 1)
+    #     celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows = check_CELDT_ELPAC_status(rows)
+        
+
+    #     OCR_Data_Path2 = None
+    #     if standardized_png_path2 is not None:
+    #         print("logic for the second one...")
+            
+    #         # PAGE 2 ONLY LOGIC 
+    #         rows_page_2, OCR_Data_Path2, _, _, _, celdt_string, elpac_string = extract_data(standardized_png_path2, height1, width1, 2)
+
+    #         celdt_detected_page_2, confirmed_celdt_rows_page_2, elpac_detected_page_2, elpac_rows_page_2 = check_CELDT_ELPAC_status(rows_page_2)
+    #         print(f"celdt detection within pdf page 2 = {celdt_detected_page_2}")
+    #         celdt_detected = celdt_detected or celdt_detected_page_2
+    #         elpac_detected = elpac_detected or elpac_detected_page_2
+    #         print(f"page 2 rows:")
+    #         for row in rows_page_2:
+    #             rows.append(row)
+    #             print(f"page 2 row: {row}")
+
+    #         for row in confirmed_celdt_rows_page_2:
+    #             confirmed_celdt_rows.append(row)
+    #         for elpac_row in elpac_rows_page_2:
+    #             elpac_rows.append(elpac_row)
+
+    #     return celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows, OCR_Data_Path, OCR_Data_Path2, transfer_worksheet_found, entry_date, exit_date
     def process_pdf():
         # standardize image format
         standardized_png_path1, width1, height1, standardized_png_path2, width2, height2 = pdf_to_png(file_path)
         
         # STANDARD LOGIC
-        rows, OCR_Data_Path, transfer_worksheet_found, entry_date, exit_date = extract_data(standardized_png_path1, height1, width1, 1)
+        rows, OCR_Data_Path, transfer_worksheet_found, entry_date, exit_date, celdt_str, elpac_str = extract_data(standardized_png_path1, height1, width1, 1)
         celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows = check_CELDT_ELPAC_status(rows)
         
 
         OCR_Data_Path2 = None
+        elpac_str2 = None
+        celdt_str2 = None
         if standardized_png_path2 is not None:
             print("logic for the second one...")
             
             # PAGE 2 ONLY LOGIC 
-            rows_page_2, OCR_Data_Path2, _, _, _ = extract_data(standardized_png_path2, height1, width1, 2)
+            rows_page_2, OCR_Data_Path2, _, _, _, celdt_str2, elpac_str2 = extract_data(standardized_png_path2, height1, width1, 2)
 
             celdt_detected_page_2, confirmed_celdt_rows_page_2, elpac_detected_page_2, elpac_rows_page_2 = check_CELDT_ELPAC_status(rows_page_2)
             print(f"celdt detection within pdf page 2 = {celdt_detected_page_2}")
@@ -803,25 +878,28 @@ def process_image(filename, input_folder_path):
             for elpac_row in elpac_rows_page_2:
                 elpac_rows.append(elpac_row)
 
-        return celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows, OCR_Data_Path, OCR_Data_Path2, transfer_worksheet_found, entry_date, exit_date
+        return celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows, OCR_Data_Path, OCR_Data_Path2, \
+                transfer_worksheet_found, entry_date, exit_date, (celdt_str or celdt_str2), (elpac_str or elpac_str2), rows
     
     
     def process_png():
         standardized_png, width, height = standardize_png(file_path)
         
-        rows, OCR_Data_Path, transfer_worksheet_found, entry_date, exit_date = extract_data(standardized_png, height, width, 1)
+        rows, OCR_Data_Path, transfer_worksheet_found, entry_date, exit_date, celdt_string, elpac_string = extract_data(standardized_png, height, width, 1)
         celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows = check_CELDT_ELPAC_status(rows)
 
-        return celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows, OCR_Data_Path, transfer_worksheet_found, entry_date, exit_date
+        return celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows, OCR_Data_Path, \
+                transfer_worksheet_found, entry_date, exit_date, celdt_string, elpac_string, rows
         
 
     def process_jpg():
         standardized_png, width, height = jpg_to_png(file_path)
         
-        rows, OCR_Data_Path, transfer_worksheet_found, entry_date, exit_date = extract_data(standardized_png, height, width, 1)
+        rows, OCR_Data_Path, transfer_worksheet_found, entry_date, exit_date, celdt_string, elpac_string = extract_data(standardized_png, height, width, 1)
         celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows = check_CELDT_ELPAC_status(rows)
 
-        return celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows, OCR_Data_Path, transfer_worksheet_found, entry_date, exit_date
+        return celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows, OCR_Data_Path, \
+                transfer_worksheet_found, entry_date, exit_date, celdt_string, elpac_string, rows
 
 
 
@@ -836,11 +914,11 @@ def process_image(filename, input_folder_path):
     OCR_Data_Path2 = None
     os.makedirs("Temp", exist_ok=True)
     if file_extension == ".png":
-        celdt_detected, celdt_rows, elpac_detected, elpac_rows, OCR_Data_Path, transfer_worksheet_found, entry_date_string, exit_date_string = process_png()
+        celdt_detected, celdt_rows, elpac_detected, elpac_rows, OCR_Data_Path, transfer_worksheet_found, entry_date_string, exit_date_string, celdt_str, elpac_str, rows = process_png()
     elif file_extension == ".pdf":
-        celdt_detected, celdt_rows, elpac_detected, elpac_rows, OCR_Data_Path, OCR_Data_Path2, transfer_worksheet_found, entry_date_string, exit_date_string = process_pdf()
+        celdt_detected, celdt_rows, elpac_detected, elpac_rows, OCR_Data_Path, OCR_Data_Path2, transfer_worksheet_found, entry_date_string, exit_date_string, celdt_str, elpac_str, rows = process_pdf()
     elif file_extension in [".jpg", ".jpeg"]:
-        celdt_detected, celdt_rows, elpac_detected, elpac_rows, OCR_Data_Path, transfer_worksheet_found, entry_date_string, exit_date_string = process_jpg()
+        celdt_detected, celdt_rows, elpac_detected, elpac_rows, OCR_Data_Path, transfer_worksheet_found, entry_date_string, exit_date_string, celdt_str, elpac_str, rows = process_jpg()
     elif file_extension == ".tiff":
         raise ValueError(f"Unimplemented file type: {file_extension}")
     else:
@@ -853,13 +931,32 @@ def process_image(filename, input_folder_path):
     entry_date = extract_8_digit_dates_from_strings(entry_date_string)
     exit_date = extract_8_digit_dates_from_strings(exit_date_string)
 
+    final_result = {
+        "filename": filename,
+        "data": (
+            celdt_detected,
+            celdt_rows,
+            elpac_detected,
+            elpac_rows,
+            transfer_worksheet_found,
+            entry_date,
+            exit_date,
+            celdt_date,
+            elpac_date,
+            celdt_str,
+            elpac_str
+        ),
+        "rows": rows
+    }
+
+    save_cache(key, final_result)
+
 
     print("about to remove temp files")
     remove_temporary_files()
     print("done removing temp files")
     save_catalog(catalog)
-    return celdt_detected, celdt_rows, elpac_detected, elpac_rows, \
-        transfer_worksheet_found, entry_date, exit_date, celdt_date, elpac_date    # dates, scores, score_types
+    return final_result["data"]
 
 
 
