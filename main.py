@@ -416,7 +416,7 @@ def process_cached_data(cache_dir):
             file_key = os.path.splitext(cache_filename)[0]
             cache_path = os.path.join(cache_dir, cache_filename)
             try:
-                cached_data = load_cache(file_key)
+                cached_data = load_cache(file_key, cache_dir)
                 if cached_data is None:
                     print(f"No cache found for {file_key}, skipping")
                     continue

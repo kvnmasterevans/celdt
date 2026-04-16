@@ -75,8 +75,8 @@ def save_cache(file_key, data_tuple):
     with open(cache_file, "wb") as f:
         pickle.dump(data_tuple, f)
 
-def load_cache(file_key):
-    cache_file = os.path.join(CACHE_DIR, f"{file_key}.pkl")
+def load_cache(file_key, Cache_dir = CACHE_DIR):
+    cache_file = os.path.join(Cache_dir, f"{file_key}.pkl")
     if os.path.exists(cache_file):
         with open(cache_file, "rb") as f:
             return pickle.load(f)
