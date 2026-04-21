@@ -440,8 +440,14 @@ def process_cached_data(cache_dir):
                 text_file.write(f"{file_name}\n\tCELDT results found = {celdt_detected}\n")
                 text_file.write(f"\tELPAC results found = {elpac_detected}\n")
 
-                csv_writer.writerow([file_name, f" CELDT or ELPAC string Detected. CELDT = {celdt_str}, ELPAC = {elpac_str}"])
-                tsv_writer.writerow([file_name, f" CELDT or ELPAC string Detected. CELDT = {celdt_str}, ELPAC = {elpac_str}"])
+                # csv_writer.writerow([file_name, f" CELDT or ELPAC string Detected. CELDT = {celdt_str}, ELPAC = {elpac_str}"])
+                # tsv_writer.writerow([file_name, f" CELDT or ELPAC string Detected. CELDT = {celdt_str}, ELPAC = {elpac_str}"])
+
+                csv_writer.writerow([file_name, f" CELDT or ELPAC string Detected in document. CELDT = {celdt_str}, ELPAC = {elpac_str}"])
+                tsv_writer.writerow([file_name, f" CELDT or ELPAC string Detected in document. CELDT = {celdt_str}, ELPAC = {elpac_str}"])
+
+                csv_writer.writerow([file_name, f" CELDT or ELPAC Detected in rows = {(celdt_detected or elpac_detected)}"])
+                tsv_writer.writerow([file_name, f" CELDT or ELPAC Detected in rows = {(celdt_detected or elpac_detected)}"])
 
                 if celdt_detected or elpac_detected:
                     text_file.write("\t details:\n")
