@@ -122,6 +122,41 @@ If you want to preserve results from previous runs, move or rename those files b
 
 ---
 
+### 🧩 Version 0.06.1 — *Mar 22, 2026*
+**Repository:** `celdt`  
+- Supports **PDF, PNG, and JPG**  
+- Added location-based entry and exit date detection
+
+---
+
+### 🧩 Version 0.07.0 — *Apr 6, 2026*
+**Repository:** `celdt`  
+- Supports **PDF, PNG, and JPG**  
+- Added a cache-only run version
+
+---
+
+### 🧩 Version 0.07.1 — *Apr 15, 2026*
+**Repository:** `celdt`  
+- Supports **PDF, PNG, and JPG**  
+- Fixed code so that if you sepecify a cache directory other than OCR_Cache then it actually runs
+
+---
+
+### 🧩 Version 0.07.2 — *Apr 20, 2026*
+**Repository:** `celdt`  
+- Supports **PDF, PNG, and JPG**  
+- Fixed subtle difference between cache-less and cached version of the script so that both produce identical outputs the way the cache-less original version formats everything
+
+---
+
+### 🧩 Version 0.07.3 — *Apr 26, 2026*
+**Repository:** `celdt`  
+- Supports **PDF, PNG, and JPG**  
+- Updated Readme
+
+---
+
 ## 🏗️ Basic Architecture (Version 0.05.3)
 
 The project consists of **five main functional files:**
