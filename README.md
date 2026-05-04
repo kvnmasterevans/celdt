@@ -157,6 +157,13 @@ If you want to preserve results from previous runs, move or rename those files b
 
 ---
 
+### 🧩 Version 0.07.4 — *May 4, 2026*
+**Repository:** `celdt`  
+- Supports **PDF, PNG, and JPG**  
+- Altered utils.py cache method so that files with different names but duplicate contents properly create different caches
+
+---
+
 ## 🏗️ Basic Architecture (Version 0.05.3)
 
 The project consists of **five main functional files:**

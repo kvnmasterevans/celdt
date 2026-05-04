@@ -720,7 +720,8 @@ def process_image(filename, input_folder_path):
     file_path = os.path.join(input_folder_path, filename)
     file_extension = os.path.splitext(file_path)[1].lower()
 
-    key = file_hash(file_path)
+    # key = file_hash(file_path) # changed file has to include filename
+    key = file_hash(file_path) + "_" + filename
 
     cached_result = load_cache(key)
     if cached_result:
