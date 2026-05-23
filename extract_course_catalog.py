@@ -7,7 +7,7 @@ import os
 # CONFIG
 # ---------------------------------------------------
 
-CATALOG_FILE = "course_catalog.json"
+CATALOG_FILE = "preliminary_course_catalog.json"
 
 REJECT_KEYWORDS = [
     "TERM:",
@@ -113,12 +113,56 @@ def extract_course_catalog(rows, existing_catalog):
 
         if not title:
             continue
+        
 
-        # Add if not already present
+
+
+
+
+        '''
+        Course Catalog structure:
+
+
+        catalog
+        │
+        ├── course_code
+        │   │
+        │   ├── titles
+        │   │   ├── observed_title : frequency
+        │   │   └── observed_title : frequency
+        │   │
+        │   ├── credits
+        │   │   ├── observed_credit : frequency
+        │   │   └── observed_credit : frequency
+        │   │
+        │   └── count
+        │
+        └── course_code
+        '''
+
+
+
         if course_code not in catalog:
             catalog[course_code] = {
-                "title": title,
-                "credits": credit_value
+                "titles": {},
+                "credits": {},
+                "count": 0
             }
+
+        entry = catalog[course_code]
+
+        entry["count"] += 1
+
+        # Track title frequency
+        if title not in entry["titles"]:
+            entry["titles"][title] = 0
+
+        entry["titles"][title] += 1
+
+        # Track credit frequency
+        if credit_value not in entry["credits"]:
+            entry["credits"][credit_value] = 0
+
+        entry["credits"][credit_value] += 1
 
     return catalog
