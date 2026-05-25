@@ -164,9 +164,22 @@ If you want to preserve results from previous runs, move or rename those files b
 
 ---
 
+### 🧩 Version 0.08.0 — *May 22, 2026*
+**Repository:** `celdt`  
+- Supports **PDF, PNG, and JPG**  
+- Now outputs preliminary_course_catalog.json instead of course_catalog.json, which is formatted to function as input for the Course_Catalog_Finalizer script
+
+---
+
+### 🧩 Version 0.08.1 — *May 24, 2026*
+**Repository:** `celdt`  
+- Updated the README.md file
+
+---
+
 ## 🏗️ Basic Architecture (Version 0.05.3)
 
-The project consists of **five main functional files:**
+The project consists of **six main functional files:**
 
 ---
 
@@ -228,6 +241,11 @@ The project consists of **five main functional files:**
 ### `check_for_CELDT_and_ELPAC.py` formerly `check_for_CELDT.py`
 - Contains `check_CELDT_ELPAC_status()`  
 - Extracts CELDT and ELPAC data from text rows
+
+---
+
+### `extract_course_catalog.py` 
+- Contains logic for extracting and saving a preliminary course catalog in a format that can later be run through the Course_Catalog_Finalizer program
 
 ---
 
