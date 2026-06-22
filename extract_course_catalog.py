@@ -64,7 +64,7 @@ def save_catalog(catalog):
 # EXTRACTION
 # ---------------------------------------------------
 
-def extract_course_catalog(rows, existing_catalog):
+def extract_course_catalog(filename, rows, existing_catalog):
     catalog = existing_catalog
 
     for row in rows:
@@ -128,12 +128,12 @@ def extract_course_catalog(rows, existing_catalog):
         ├── course_code
         │   │
         │   ├── titles
-        │   │   ├── observed_title : frequency
-        │   │   └── observed_title : frequency
+        │   │   ├── observed_title : [frequency, [filename, filename, ...]]
+        │   │   └── observed_title : [frequency, [filename, filename, ...]]
         │   │
         │   ├── credits
-        │   │   ├── observed_credit : frequency
-        │   │   └── observed_credit : frequency
+        │   │   ├── observed_credit : [frequency, [filename, filename, ...]]
+        │   │   └── observed_credit : [frequency, [filename, filename, ...]]
         │   │
         │   └── count
         │
@@ -155,14 +155,16 @@ def extract_course_catalog(rows, existing_catalog):
 
         # Track title frequency
         if title not in entry["titles"]:
-            entry["titles"][title] = 0
+            entry["titles"][title] = [0, []]
 
-        entry["titles"][title] += 1
+        entry["titles"][title][0] += 1
+        entry["titles"][title][1].append(filename)
 
         # Track credit frequency
         if credit_value not in entry["credits"]:
-            entry["credits"][credit_value] = 0
+            entry["credits"][credit_value] = [0, []]
 
-        entry["credits"][credit_value] += 1
+        entry["credits"][credit_value][0] += 1
+        entry["credits"][credit_value][1].append(filename)
 
     return catalog

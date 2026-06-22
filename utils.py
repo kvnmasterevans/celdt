@@ -726,7 +726,7 @@ def process_image(filename, input_folder_path):
     cached_result = load_cache(key)
     if cached_result:
         print("Using cached OCR result.")
-        catalog = extract_course_catalog(cached_result["rows"], catalog)
+        catalog = extract_course_catalog(filename, cached_result["rows"], catalog)
         save_catalog(catalog)
         return cached_result["data"]
 

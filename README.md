@@ -177,6 +177,12 @@ If you want to preserve results from previous runs, move or rename those files b
 
 ---
 
+### 🧩 Version 0.09 — *May 24, 2026*
+**Repository:** `celdt`  
+- changed preliminary_course_catalog.json output to also list the files that each observation came from
+
+---
+
 ## 🏗️ Basic Architecture (Version 0.05.3)
 
 The project consists of **six main functional files:**
