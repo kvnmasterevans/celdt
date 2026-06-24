@@ -811,7 +811,7 @@ def process_image(filename, input_folder_path):
 
             entry_date, exit_date = extract_entry_and_exit_dates(OCR_Data, rows)
             global catalog
-            catalog = extract_course_catalog(rows, catalog)
+            catalog = extract_course_catalog(filename, rows, catalog)
             
 
             return rows, OCR_Data_Path, transfer_worksheet_found, entry_date, exit_date, celdt_string, elpac_string
