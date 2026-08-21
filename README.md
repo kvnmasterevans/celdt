@@ -16,6 +16,10 @@ python main.py run all [folder_name]
 usage example:
 python main.py run all Transcripts
 
+If you want to do student name & ID redaction add the --redact-pii argument to the call.
+usage example:
+python main.py run all Transcripts --redact-pii
+
 Note:
 Each run overwrites the existing text_output.txt and csv_output.csv files.
 If you want to preserve results from previous runs, move or rename those files before running the program again.
@@ -177,9 +181,20 @@ If you want to preserve results from previous runs, move or rename those files b
 
 ---
 
-### 🧩 Version 0.09 — *May 24, 2026*
+### 🧩 Version 0.09 — *June 22, 2026*
 **Repository:** `celdt`  
 - changed preliminary_course_catalog.json output to also list the files that each observation came from
+
+---
+
+### 🧩 Version 0.09 — *June 23, 2026*
+**Repository:** `celdt`  
+- changed preliminary_course_catalog.json output to also list the files that each observation came from
+
+### 🧩 Version 0.10 — *August 20, 2026*
+**Repository:** `celdt`  
+- Added string based redaction (reads student name and ID from the filename and redacts that in the rows)
+    - * The redaction is far too broad at the moment and redacts much more than just PII
 
 ---
 
@@ -256,7 +271,7 @@ The project consists of **six main functional files:**
 ---
 
 ## 🐞 Known Issues
-- No currently known issues
+- Redaction method is too broad and redacts far more than ideal
 
 ---
 

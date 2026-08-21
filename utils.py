@@ -15,6 +15,7 @@ from New_Column_Algorithm import detect_four_columns
 from check_for_CELDT_and_ELPAC import check_CELDT_ELPAC_status, Generic_CELDT_ELPAC_String_Check
 from extract_course_catalog import extract_course_catalog, load_catalog, save_catalog
 from debug_save_ocr import save_debug_json
+from redactor import redact_protected_info_from_rows, get_protected_terms_from_filename
 
 
 
@@ -696,7 +697,7 @@ def extract_entry_and_exit_dates_by_location(OCR_results):
 
 
 
-def process_image(filename, input_folder_path):
+def process_image(filename, input_folder_path, redact_pii=False):
 
     def remove_temporary_files():
         # Remove temporary image file
@@ -812,7 +813,8 @@ def process_image(filename, input_folder_path):
             entry_date, exit_date = extract_entry_and_exit_dates(OCR_Data, rows)
             global catalog
             catalog = extract_course_catalog(filename, rows, catalog)
-            
+
+
 
             return rows, OCR_Data_Path, transfer_worksheet_found, entry_date, exit_date, celdt_string, elpac_string
 
@@ -932,6 +934,18 @@ def process_image(filename, input_folder_path):
     entry_date = extract_8_digit_dates_from_strings(entry_date_string)
     exit_date = extract_8_digit_dates_from_strings(exit_date_string)
 
+
+
+
+    # ~redact row text...
+    if redact_pii == True:
+        protected_terms = get_protected_terms_from_filename(filename)
+        redacted_rows = redact_protected_info_from_rows(protected_terms, rows)
+        rows_output = redacted_rows
+    else:
+        rows_output = rows
+
+
     final_result = {
         "filename": filename,
         "data": (
@@ -947,11 +961,14 @@ def process_image(filename, input_folder_path):
             celdt_str,
             elpac_str
         ),
-        "rows": rows
+        "rows": rows_output
     }
 
     save_cache(key, final_result)
 
+    for row in rows_output:
+        print("~~~~finalized rows~~~~:")
+        print(row)
 
     print("about to remove temp files")
     remove_temporary_files()
