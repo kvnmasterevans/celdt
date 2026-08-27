@@ -697,7 +697,59 @@ def extract_entry_and_exit_dates_by_location(OCR_results):
 
 
 
-def process_image(filename, input_folder_path, redact_pii=False):
+
+
+import json
+import uuid
+
+
+# def generate_pseudonym(filename, pseudonym_data, pseudonym_file):
+#     """
+#     Return the existing pseudonym for filename, or create a new one.
+#     """
+
+#     mappings = pseudonym_data["mappings"]
+
+#     # Check whether this filename already has a pseudonym
+#     for pseudonym, existing_filename in mappings.items():
+#         if existing_filename == filename:
+#             return pseudonym
+
+#     # Generate a new pseudonym
+#     next_id = pseudonym_data["next_id"]
+
+#     pseudonym = f"{next_id:06d}-{uuid.uuid4().hex[:8]}"
+
+#     # Update in-memory data
+#     mappings[pseudonym] = filename
+#     pseudonym_data["next_id"] += 1
+
+#     # Immediately persist the update
+#     with open(pseudonym_file, "w", encoding="utf-8") as f:
+#         json.dump(pseudonym_data, f, indent=2)
+
+#     return pseudonym
+
+def generate_pseudonym(filename, pseudonym_data, pseudonym_file):
+    mappings = pseudonym_data["mappings"]
+
+    if filename in mappings:
+        return mappings[filename]
+
+    next_id = pseudonym_data["next_id"]
+
+    pseudonym = f"{next_id:06d}-{uuid.uuid4().hex[:8]}"
+
+    mappings[filename] = pseudonym
+    pseudonym_data["next_id"] += 1
+
+    with open(pseudonym_file, "w", encoding="utf-8") as f:
+        json.dump(pseudonym_data, f, indent=2)
+
+    return pseudonym
+
+
+def process_image(filename, input_folder_path, pseudonym_data, pseudonym_path, redact_pii=False):
 
     def remove_temporary_files():
         # Remove temporary image file
@@ -722,7 +774,8 @@ def process_image(filename, input_folder_path, redact_pii=False):
     file_extension = os.path.splitext(file_path)[1].lower()
 
     # key = file_hash(file_path) # changed file has to include filename
-    key = file_hash(file_path) + "_" + filename
+    # key = file_hash(file_path) + "_" + filename
+    key = generate_pseudonym(filename, pseudonym_data, pseudonym_path)
 
     cached_result = load_cache(key)
     if cached_result:
@@ -947,7 +1000,7 @@ def process_image(filename, input_folder_path, redact_pii=False):
 
 
     final_result = {
-        "filename": filename,
+        "pseudonym": key,
         "data": (
             celdt_detected,
             celdt_rows,

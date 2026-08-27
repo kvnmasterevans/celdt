@@ -2,6 +2,8 @@
 
 This repository contains scripts for detecting English learner information from student transcripts in image or PDF format.  
 The program reads PDFs and image files, extracts relevant text using OCR, and identifies CELDT and ELPAC data.
+It psudonymizes file names and creates a psudonym_data.json file that shows the file name -> pseudonym pairs.
+It optionally redacts strings by including --redact-pii when calling the program. 
 
 ---
 
@@ -195,6 +197,12 @@ If you want to preserve results from previous runs, move or rename those files b
 **Repository:** `celdt`  
 - Added string based redaction (reads student name and ID from the filename and redacts that in the rows)
     - * The redaction is far too broad at the moment and redacts much more than just PII
+
+---
+
+### 🧩 Version 0.11 — *August 26, 2026*
+**Repository:** `celdt`  
+- Now pseudonymizes file names
 
 ---
 

@@ -23,7 +23,7 @@ def custom_excepthook(exc_type, exc_value, exc_traceback):
 sys.excepthook = custom_excepthook
 
 
-def process_images_in_folder(folder_path, redact_pii=False):
+def process_images_in_folder(folder_path, pseudonym_data, pseudonym_path, redact_pii=False):
     print("processing all images in " + str(folder_path) + " folder")
     print(f"Using new algorithm is set to {USE_NEW_COLUMN_ALGORITHM}")
     # scan in image
@@ -54,7 +54,7 @@ def process_images_in_folder(folder_path, redact_pii=False):
                 # celdt_detected, dates, scores, score_types = process_image(filename, folder_path)
                 celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows, transfer_worksheet_found, \
                     entry_date, exit_date, celdt_date, elpac_date, celdt_str, elpac_str = \
-                    process_image(filename, folder_path, redact_pii)
+                    process_image(filename, folder_path, pseudonym_data, pseudonym_path, redact_pii)
                 print("still going 2")
                 print(f"Dates:    entry: {entry_date}, exit: {exit_date}, elpac: {elpac_date}, celdt: {celdt_date}")
                 print("celdt string detected = {celdt_str}")
@@ -176,7 +176,7 @@ def process_cached_data(cache_dir):
 
                 rows = cached_data["rows"]
                 global catalog
-                catalog = extract_course_catalog(rows, catalog)
+                catalog = extract_course_catalog(cache_filename, rows, catalog)
                 save_catalog(catalog)
 
                 # Unpack cached tuple the same way you do after OCR
@@ -187,7 +187,7 @@ def process_cached_data(cache_dir):
                  transfer_worksheet_found, entry_date, exit_date, celdt_date, elpac_date,
                  celdt_str, elpac_str) = cached_data["data"]
                 
-                file_name = cached_data["filename"]
+                file_name = cached_data["pseudonym"] # now tracks the pseudonym
 
                 text_file.write(f"{file_name}\n\tTransfer Admission Worksheet = {transfer_worksheet_found}\n")
                 text_file.write(f"{file_name}\n\tCELDT results found = {celdt_detected}\n")
@@ -249,10 +249,22 @@ def main():
     )
     
     args = parser.parse_args()
+
+    pseudonym_file = "pseudonym_data.json"
+
+    if os.path.exists(pseudonym_file):
+        with open(pseudonym_file, "r", encoding="utf-8") as f:
+            pseudonym_data = json.load(f)
+    else:
+        pseudonym_data = {
+            "next_id": 0,
+            "mappings": {}
+        }
+
     
     if args.command == 'run':
         if args.target == 'all':
-            process_images_in_folder(args.folder, args.redact_pii)
+            process_images_in_folder(args.folder, pseudonym_data, pseudonym_file, args.redact_pii)
         elif args.target == 'cache':
             process_cached_data(args.folder)
         else:
