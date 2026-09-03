@@ -18,9 +18,13 @@ python main.py run all [folder_name]
 usage example:
 python main.py run all Transcripts
 
-If you want to do student name & ID redaction add the --redact-pii argument to the call.
+If you want to do student name & ID redaction add the --redact-pii flag to the call.
 usage example:
 python main.py run all Transcripts --redact-pii
+
+If you want to run a check for the existence of PII matches in the file add the --check-pii flag to the call.
+usage example:
+python main.py run all Transcripts  --check-pii
 
 Note:
 Each run overwrites the existing text_output.txt and csv_output.csv files.
@@ -206,6 +210,14 @@ If you want to preserve results from previous runs, move or rename those files b
 
 ---
 
+### 🧩 Version 0.12 — *September 3, 2026*
+**Repository:** `celdt`  
+- added the --check-pii flag which runs a sub-program that checks for the existence of the student PII (name and ID) in any of the strings that make up the rows variable. It outputs this data to check_pii_data.json
+
+---
+
+
+
 ## 🏗️ Basic Architecture (Version 0.05.3)
 
 The project consists of **six main functional files:**
@@ -275,6 +287,11 @@ The project consists of **six main functional files:**
 
 ### `extract_course_catalog.py` 
 - Contains logic for extracting and saving a preliminary course catalog in a format that can later be run through the Course_Catalog_Finalizer program
+
+---
+
+### `redactor.py` 
+- Contains PII based extraction logic
 
 ---
 

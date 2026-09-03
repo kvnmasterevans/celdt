@@ -51,21 +51,6 @@ def compare_strings(target: str, candidate: str) -> float:
     return fuzz.ratio(target, candidate)
 
 
-# def redact_protected_info_from_rows(protected_terms, rows):
-
-#     for row in rows:
-#         print("redact row")
-#         for protected_term in protected_terms:
-#             similarity = compare_strings(row, protected_term)
-#             if similarity > redact_threshold:
-#                 print("redact")
-#             elif similarity > review_threshold:
-#                 print("review")
-
-
-#     print("do the redaction")
-
-
 
 
 
@@ -114,53 +99,6 @@ def find_best_match(protected_term, row):
 
     return best_match
 
-
-# def redact_protected_info_from_rows(protected_terms, rows):
-
-#     redacted_rows = []
-
-#     for row in rows:
-
-#         row_text = row   # ["text"]
-#         new_row = row_text
-
-#         for protected_term in protected_terms:
-
-#             match = find_best_match(
-#                 protected_term,
-#                 new_row
-#             )
-
-#             if match is None:
-#                 continue
-
-#             start, end, similarity = match
-
-#             if similarity >= redact_threshold:
-
-#                 print(
-#                     f"REDACT: '{new_row[start:end]}' "
-#                     f"matched '{protected_term}' "
-#                     f"({similarity:.3f})"
-#                 )
-
-#                 new_row = (
-#                     new_row[:start]
-#                     + "[REDACTED]"
-#                     + new_row[end:]
-#                 )
-
-#             elif similarity >= review_threshold:
-
-#                 print(
-#                     f"REVIEW: '{new_row[start:end]}' "
-#                     f"possibly matches '{protected_term}' "
-#                     f"({similarity:.3f})"
-#                 )
-
-#         redacted_rows.append(new_row)
-
-#     return redacted_rows
 
 
 def redact_protected_info_from_rows(protected_terms, rows):
@@ -212,3 +150,18 @@ def redact_protected_info_from_rows(protected_terms, rows):
         redacted_rows.append(new_row)
 
     return redacted_rows
+
+
+def check_for_PI(protected_terms, rows):
+    found_matches = []
+    print("check for PI info")
+    for row in rows:
+        for protected_term in protected_terms:
+            if protected_term.lower() in str(row["text"]).lower():
+                print("term found")
+                found_term = {"protected term":protected_term, "source row":row}
+                found_matches.append(found_term)
+    return found_matches
+
+def stricter_matching():
+    print("not 100% but close?")

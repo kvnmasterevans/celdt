@@ -15,7 +15,7 @@ from New_Column_Algorithm import detect_four_columns
 from check_for_CELDT_and_ELPAC import check_CELDT_ELPAC_status, Generic_CELDT_ELPAC_String_Check
 from extract_course_catalog import extract_course_catalog, load_catalog, save_catalog
 from debug_save_ocr import save_debug_json
-from redactor import redact_protected_info_from_rows, get_protected_terms_from_filename
+from redactor import redact_protected_info_from_rows, get_protected_terms_from_filename, check_for_PI
 
 
 
@@ -42,6 +42,10 @@ def save_image(image, file_path):
     
     # Save the image
     cv2.imwrite(file_path, image)
+
+def save_json(data, path):
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4)
 
     
 def get_unique_filename(directory, base_filename, extension):
@@ -703,33 +707,6 @@ import json
 import uuid
 
 
-# def generate_pseudonym(filename, pseudonym_data, pseudonym_file):
-#     """
-#     Return the existing pseudonym for filename, or create a new one.
-#     """
-
-#     mappings = pseudonym_data["mappings"]
-
-#     # Check whether this filename already has a pseudonym
-#     for pseudonym, existing_filename in mappings.items():
-#         if existing_filename == filename:
-#             return pseudonym
-
-#     # Generate a new pseudonym
-#     next_id = pseudonym_data["next_id"]
-
-#     pseudonym = f"{next_id:06d}-{uuid.uuid4().hex[:8]}"
-
-#     # Update in-memory data
-#     mappings[pseudonym] = filename
-#     pseudonym_data["next_id"] += 1
-
-#     # Immediately persist the update
-#     with open(pseudonym_file, "w", encoding="utf-8") as f:
-#         json.dump(pseudonym_data, f, indent=2)
-
-#     return pseudonym
-
 def generate_pseudonym(filename, pseudonym_data, pseudonym_file):
     mappings = pseudonym_data["mappings"]
 
@@ -749,7 +726,7 @@ def generate_pseudonym(filename, pseudonym_data, pseudonym_file):
     return pseudonym
 
 
-def process_image(filename, input_folder_path, pseudonym_data, pseudonym_path, redact_pii=False):
+def process_image(filename, input_folder_path, pseudonym_details, check_pii_details, redact_pii=False, check_pii=False):
 
     def remove_temporary_files():
         # Remove temporary image file
@@ -775,6 +752,8 @@ def process_image(filename, input_folder_path, pseudonym_data, pseudonym_path, r
 
     # key = file_hash(file_path) # changed file has to include filename
     # key = file_hash(file_path) + "_" + filename
+    pseudonym_data = pseudonym_details["pseudonym_data"]
+    pseudonym_path = pseudonym_details["pseudonym_path"]
     key = generate_pseudonym(filename, pseudonym_data, pseudonym_path)
 
     cached_result = load_cache(key)
@@ -997,6 +976,20 @@ def process_image(filename, input_folder_path, pseudonym_data, pseudonym_path, r
         rows_output = redacted_rows
     else:
         rows_output = rows
+
+    # ~check existence of protected informatino...
+    pii_data = check_pii_details["pii_data"]
+    pii_data_path = check_pii_details["pii_data_path"]
+    if check_pii == True:
+        protected_terms = get_protected_terms_from_filename(filename)
+        detected_terms = check_for_PI(protected_terms, rows)
+        # store redacted_terms in dict
+        if detected_terms:
+            pii_data[filename] = detected_terms
+    save_json(
+                    check_pii_details["pii_data"],
+                    check_pii_details["pii_data_path"]
+                )        
 
 
     final_result = {

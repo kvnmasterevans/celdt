@@ -23,11 +23,13 @@ def custom_excepthook(exc_type, exc_value, exc_traceback):
 sys.excepthook = custom_excepthook
 
 
-def process_images_in_folder(folder_path, pseudonym_data, pseudonym_path, redact_pii=False):
+def process_images_in_folder(folder_path, pseudonym_details, check_pii_details, redact_pii=False, check_pii=False):
     print("processing all images in " + str(folder_path) + " folder")
     print(f"Using new algorithm is set to {USE_NEW_COLUMN_ALGORITHM}")
     # scan in image
      # List all files in the folder
+
+
 
     init_ocr()
     
@@ -54,7 +56,7 @@ def process_images_in_folder(folder_path, pseudonym_data, pseudonym_path, redact
                 # celdt_detected, dates, scores, score_types = process_image(filename, folder_path)
                 celdt_detected, confirmed_celdt_rows, elpac_detected, elpac_rows, transfer_worksheet_found, \
                     entry_date, exit_date, celdt_date, elpac_date, celdt_str, elpac_str = \
-                    process_image(filename, folder_path, pseudonym_data, pseudonym_path, redact_pii)
+                    process_image(filename, folder_path, pseudonym_details, check_pii_details, redact_pii, check_pii)
                 print("still going 2")
                 print(f"Dates:    entry: {entry_date}, exit: {exit_date}, elpac: {elpac_date}, celdt: {celdt_date}")
                 print("celdt string detected = {celdt_str}")
@@ -247,6 +249,11 @@ def main():
     action='store_true',
     help="Extract and redact student ID, first name, and last name."
     )
+    parser.add_argument(
+    '--check-pii',
+    action='store_true',
+    help="Check for student ID, first name, and last name."
+    )
     
     args = parser.parse_args()
 
@@ -261,10 +268,27 @@ def main():
             "mappings": {}
         }
 
+    check_pii_file = "check_pii_data.json"
+
+    if os.path.exists(check_pii_file):
+            with open(check_pii_file, "r", encoding="utf-8") as f:
+                check_pii_data = json.load(f)
+    else:
+        check_pii_data = {}
+
+    
+
+
+    pseudonym_details = {"pseudonym_data":pseudonym_data, 
+                        "pseudonym_path":pseudonym_file}
+    check_pii_details = {"pii_data": check_pii_data,
+                        "pii_data_path": check_pii_file}
+
+
     
     if args.command == 'run':
         if args.target == 'all':
-            process_images_in_folder(args.folder, pseudonym_data, pseudonym_file, args.redact_pii)
+            process_images_in_folder(args.folder, pseudonym_details, check_pii_details, args.redact_pii, args.check_pii)
         elif args.target == 'cache':
             process_cached_data(args.folder)
         else:
