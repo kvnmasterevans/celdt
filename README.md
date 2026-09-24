@@ -216,6 +216,12 @@ If you want to preserve results from previous runs, move or rename those files b
 
 ---
 
+### 🧩 Version 0.12.1 — *September 23, 2026*
+**Repository:** `celdt`  
+- added a check in main.py to make sure that the files being looped over are of the correct type
+
+---
+
 
 
 ## 🏗️ Basic Architecture (Version 0.05.3)

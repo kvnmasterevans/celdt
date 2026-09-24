@@ -45,6 +45,14 @@ def process_images_in_folder(folder_path, pseudonym_details, check_pii_details, 
         tsv_writer = csv.writer(tsv_file, delimiter="\t")
         text_file.write("English Learner Statuses: \n\n")
         for filename in os.listdir(folder_path):
+
+            # Check for invalid files
+            if filename.startswith("._"):
+                continue
+            if not filename.lower().endswith((".png", ".jpg", ".jpeg", ".pdf")):
+                continue
+
+
             try:
                 start = time.perf_counter()
                 start_wall_time = datetime.now()
