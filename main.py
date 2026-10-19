@@ -2,7 +2,7 @@ import os
 import csv
 import argparse
 import json
-from utils import process_image, USE_NEW_COLUMN_ALGORITHM, init_ocr, load_cache, catalog
+from utils import process_image, USE_NEW_COLUMN_ALGORITHM, init_ocr, load_cache, catalog, generate_pseudonym
 import traceback
 import time
 import numpy as np
@@ -23,7 +23,13 @@ def custom_excepthook(exc_type, exc_value, exc_traceback):
 sys.excepthook = custom_excepthook
 
 
-def process_images_in_folder(folder_path, pseudonym_details, check_pii_details, redact_pii=False, check_pii=False):
+def process_images_in_folder(
+        folder_path,
+        pseudonym_details,
+        check_pii_details,
+        redact_pii=False, 
+        check_pii=False):
+        
     print("processing all images in " + str(folder_path) + " folder")
     print(f"Using new algorithm is set to {USE_NEW_COLUMN_ALGORITHM}")
     # scan in image
@@ -56,6 +62,11 @@ def process_images_in_folder(folder_path, pseudonym_details, check_pii_details, 
             try:
                 start = time.perf_counter()
                 start_wall_time = datetime.now()
+                output_name = generate_pseudonym(
+                    filename,
+                    pseudonym_details["pseudonym_data"],
+                    pseudonym_details["pseudonym_path"]
+                )
                 print()
                 print(filename)
                 # Construct the full file path
@@ -71,16 +82,16 @@ def process_images_in_folder(folder_path, pseudonym_details, check_pii_details, 
                 print("elpac string detected = {elpac_str}")
                 # for match in matches:, entry_date, exit_date
                 #     print(match)
-                text_file.write(f"{filename}\n\tTransfer Admission Worksheet = {transfer_worksheet_found}\n")
-                text_file.write(f"{filename}\n\tCELDT results found = {celdt_detected}\n")
+                text_file.write(f"{output_name}\n\tTransfer Admission Worksheet = {transfer_worksheet_found}\n")
+                text_file.write(f"{output_name}\n\tCELDT results found = {celdt_detected}\n")
                 text_file.write(f"\tELPAC results found = {elpac_detected}\n")
                 print("still going 3")
 
-                csv_writer.writerow([filename, f" CELDT or ELPAC string Detected in document. CELDT = {celdt_str}, ELPAC = {elpac_str}"])
-                tsv_writer.writerow([filename, f" CELDT or ELPAC string Detected in document. CELDT = {celdt_str}, ELPAC = {elpac_str}"])
+                csv_writer.writerow([output_name, f" CELDT or ELPAC string Detected in document. CELDT = {celdt_str}, ELPAC = {elpac_str}"])
+                tsv_writer.writerow([output_name, f" CELDT or ELPAC string Detected in document. CELDT = {celdt_str}, ELPAC = {elpac_str}"])
 
-                csv_writer.writerow([filename, f" CELDT or ELPAC Detected in rows = {(celdt_detected or elpac_detected)}"])
-                tsv_writer.writerow([filename, f" CELDT or ELPAC Detected in rows = {(celdt_detected or elpac_detected)}"])
+                csv_writer.writerow([output_name, f" CELDT or ELPAC Detected in rows = {(celdt_detected or elpac_detected)}"])
+                tsv_writer.writerow([output_name, f" CELDT or ELPAC Detected in rows = {(celdt_detected or elpac_detected)}"])
                 if elpac_detected or celdt_detected:
                     text_file.write("\t details:\n")
 
@@ -89,8 +100,8 @@ def process_images_in_folder(folder_path, pseudonym_details, check_pii_details, 
                     print("elpac detected")
                     for row in elpac_rows:
                         text_file.write(f"\t\t{row}\n")
-                        csv_writer.writerow([filename, row])
-                        tsv_writer.writerow([filename, row])
+                        csv_writer.writerow([output_name, row])
+                        tsv_writer.writerow([output_name, row])
                         
                 print(f"CELDT Detected = {celdt_detected}")
                 if celdt_detected == True: # and dates and scores and score_types:
@@ -98,25 +109,25 @@ def process_images_in_folder(folder_path, pseudonym_details, check_pii_details, 
                     text_file.write(f"\t\tCELDT data\n")
                     for row in confirmed_celdt_rows:
                         text_file.write(f"\t\t{row}\n")
-                        csv_writer.writerow([filename, row])
-                        tsv_writer.writerow([filename, row])
+                        csv_writer.writerow([output_name, row])
+                        tsv_writer.writerow([output_name, row])
 
 
                 if entry_date != None:
                     print("ENTRY DATE FOUND!!!!   " + entry_date)
-                    csv_writer.writerow([filename, f" entry date: {entry_date}"])
-                    tsv_writer.writerow([filename, f" entry date: {entry_date}"])
+                    csv_writer.writerow([output_name, f" entry date: {entry_date}"])
+                    tsv_writer.writerow([output_name, f" entry date: {entry_date}"])
 
                 else:
-                    csv_writer.writerow([filename, " entry date not found"])
-                    tsv_writer.writerow([filename, " entry date not found"])
+                    csv_writer.writerow([output_name, " entry date not found"])
+                    tsv_writer.writerow([output_name, " entry date not found"])
                 if exit_date != None:
                     print("EXIT DATE FOUND!!!!   " + exit_date)
-                    csv_writer.writerow([filename, f" exit date: {exit_date}"])
-                    tsv_writer.writerow([filename, f" exit date: {exit_date}"])
+                    csv_writer.writerow([output_name, f" exit date: {exit_date}"])
+                    tsv_writer.writerow([output_name, f" exit date: {exit_date}"])
                 else:
-                    csv_writer.writerow([filename, " exit date not found"])
-                    tsv_writer.writerow([filename, " exit date not found"])
+                    csv_writer.writerow([output_name, " exit date not found"])
+                    tsv_writer.writerow([output_name, " exit date not found"])
                 
                 
                     print("still going 7")
@@ -145,7 +156,7 @@ def process_images_in_folder(folder_path, pseudonym_details, check_pii_details, 
                 end_wall_time = datetime.now()
                 elapsed = time.perf_counter() - start
                 text_file.write(
-                    f"\n{filename}\n"
+                    f"\n{output_name}\n"
                     f"\tStart time: {start_wall_time}\n"
                     f"\tEnd time:   {end_wall_time}\n"
                     f"\tTotal time: {elapsed:.3f} seconds\n"
@@ -185,6 +196,7 @@ def process_cached_data(cache_dir):
                     continue
 
                 rows = cached_data["rows"]
+                file_name = cached_data["pseudonym"]
                 global catalog
                 catalog = extract_course_catalog(cache_filename, rows, catalog)
                 save_catalog(catalog)
@@ -197,7 +209,7 @@ def process_cached_data(cache_dir):
                  transfer_worksheet_found, entry_date, exit_date, celdt_date, elpac_date,
                  celdt_str, elpac_str) = cached_data["data"]
                 
-                file_name = cached_data["pseudonym"] # now tracks the pseudonym
+                # file_name = cached_data["pseudonym"] # now tracks the pseudonym
 
                 text_file.write(f"{file_name}\n\tTransfer Admission Worksheet = {transfer_worksheet_found}\n")
                 text_file.write(f"{file_name}\n\tCELDT results found = {celdt_detected}\n")

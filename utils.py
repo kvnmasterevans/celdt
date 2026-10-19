@@ -759,7 +759,7 @@ def process_image(filename, input_folder_path, pseudonym_details, check_pii_deta
     cached_result = load_cache(key)
     if cached_result:
         print("Using cached OCR result.")
-        catalog = extract_course_catalog(filename, cached_result["rows"], catalog)
+        catalog = extract_course_catalog(key, cached_result["rows"], catalog)
         save_catalog(catalog)
         return cached_result["data"]
 
@@ -844,7 +844,7 @@ def process_image(filename, input_folder_path, pseudonym_details, check_pii_deta
 
             entry_date, exit_date = extract_entry_and_exit_dates(OCR_Data, rows)
             global catalog
-            catalog = extract_course_catalog(filename, rows, catalog)
+            catalog = extract_course_catalog(key, rows, catalog)
 
 
 
