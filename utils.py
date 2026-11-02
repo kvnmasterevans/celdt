@@ -16,6 +16,7 @@ from check_for_CELDT_and_ELPAC import check_CELDT_ELPAC_status, Generic_CELDT_EL
 from extract_course_catalog import extract_course_catalog, load_catalog, save_catalog
 from debug_save_ocr import save_debug_json
 from redactor import redact_protected_info_from_rows, get_protected_terms_from_filename, check_for_PI
+from cache_log import register_cache
 
 
 
@@ -1011,6 +1012,7 @@ def process_image(filename, input_folder_path, pseudonym_details, check_pii_deta
     }
 
     save_cache(key, final_result)
+    register_cache(filename, f"{key}.pkl")
 
     for row in rows_output:
         print("~~~~finalized rows~~~~:")
